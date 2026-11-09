@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PAU Madrid · Practica</title>
+  <meta name="description" content="Practica la PAU de la Comunidad de Madrid: teoría, ejercicios generados con solución paso a paso, tests y simulacros de Matemáticas II, Matemáticas CCSS y Economía de la Empresa.">
+  <meta name="theme-color" content="#5b5bd6">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b5bd6'/%3E%3Ctext x='32' y='44' font-family='Arial' font-weight='700' font-size='34' text-anchor='middle' fill='white'%3EP%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="vendor/katex/katex.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <script>
+    // Aplica el tema antes de pintar para evitar parpadeos
+    try {
+      var s = JSON.parse(localStorage.getItem('pau-madrid-v1') || '{}');
+      var t = s.settings && s.settings.theme;
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <a class="skip" href="#app">Saltar al contenido</a>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#/" aria-label="Inicio">
+        <span class="brand-mark">P</span>
+        <span class="brand-text">PAU <b>Madrid</b></span>
+      </a>
+      <nav class="nav" aria-label="Principal">
+        <a href="#/" data-nav="home">Inicio</a>
+        <a href="#/repaso" data-nav="repaso">Repaso <span class="badge" id="nav-review" hidden></span></a>
+        <a href="#/progreso" data-nav="progreso">Progreso</a>
+      </nav>
+      <button class="icon-btn" id="theme-btn" type="button" aria-label="Cambiar tema" title="Cambiar tema">
+        <svg class="i-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="app" class="container" tabindex="-1">
+    <noscript><p>Esta web necesita JavaScript para funcionar.</p></noscript>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>Hecho para estudiantes de la PAU de la Comunidad de Madrid. Contenido orientativo: consulta siempre los modelos oficiales de las universidades madrileñas. Tu progreso se guarda solo en este navegador.</p>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script defer src="vendor/katex/katex.min.js"></script>
+  <script defer src="vendor/katex/contrib/auto-render.min.js"></script>
+  <script defer src="js/core/util.js"></script>
+  <script defer src="js/core/registry.js"></script>
+  <script defer src="js/core/store.js"></script>
+  <script defer src="js/gen/mathgen.js"></script>
+  <script defer src="js/gen/econgen.js"></script>
+  <script defer src="js/data/mat2.js"></script>
+  <script defer src="js/data/matccss.js"></script>
+  <script defer src="js/data/eco.js"></script>
+  <script defer src="js/core/charts.js"></script>
+  <script defer src="js/app.js"></script>
+</body>
+</html>
