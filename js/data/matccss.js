@@ -8,11 +8,7 @@
     desc: 'Bachillerato de Ciencias Sociales. Álgebra, programación lineal, análisis, probabilidad e inferencia.',
     exam: {
       duration: 90,
-      info: 'Formato orientativo: 5 ejercicios de 2 puntos (álgebra, análisis, probabilidad e inferencia). Revisa el modelo oficial publicado por las universidades madrileñas.',
-      slots: [
-        { blocks: ['alg'], points: 2 }, { blocks: ['ana'], points: 2 }, { blocks: ['ana', 'alg'], points: 2 },
-        { topics: ['probabilidad'], points: 2 }, { topics: ['inferencia'], points: 2 },
-      ],
+      info: 'Formato actual (PAU 2026): 4 preguntas de 2,5 puntos; la primera es obligatoria y en las otras tres se elige entre dos opciones. 90 minutos. En convocatorias anteriores el formato era distinto (por ejemplo, elegir entre la opción A y la B, con 5 ejercicios de 2 puntos).',
     },
     blocks: [
       {

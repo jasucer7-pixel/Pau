@@ -9,13 +9,7 @@
     desc: 'Empresa y Diseño de Modelos de Negocio (EDMN). Teoría tipo test, preguntas de desarrollo y problemas numéricos.',
     exam: {
       duration: 90,
-      info: 'Formato orientativo: 4 preguntas teóricas (1 punto) y 3 problemas numéricos (2 puntos). La estructura oficial de Madrid puede variar: consulta el modelo publicado por las universidades.',
-      slots: [
-        { kind: 'teoria', points: 1 }, { kind: 'teoria', points: 1 }, { kind: 'teoria', points: 1 }, { kind: 'teoria', points: 1 },
-        { kind: 'problema', topics: ['produccion', 'inventarios'], points: 2 },
-        { kind: 'problema', topics: ['contabilidad', 'analisis'], points: 2 },
-        { kind: 'problema', topics: ['inversion'], points: 2 },
-      ],
+      info: 'Formato actual (PAU 2026): 4 preguntas basadas en casos. Las preguntas 1 y 3 valen 2 puntos y las 2 y 4, 3 puntos; dentro de cada una hay apartados obligatorios y otros a elegir. 90 minutos. Hasta 2024 se elegía entre la opción A y la B (4 cuestiones teóricas y 2 problemas).',
     },
     blocks: [
       {

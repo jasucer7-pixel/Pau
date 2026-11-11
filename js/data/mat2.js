@@ -8,11 +8,7 @@
     desc: 'Bachillerato de Ciencias y Tecnología. Álgebra, análisis, geometría y probabilidad.',
     exam: {
       duration: 90,
-      info: 'Formato orientativo basado en el modelo armonizado (CRUE) adoptado por Madrid: los ejercicios valen 2 puntos y se responden 5. Consulta siempre el modelo oficial de tu universidad.',
-      slots: [
-        { blocks: ['alg'], points: 2 }, { blocks: ['ana'], points: 2 }, { blocks: ['ana'], points: 2 },
-        { blocks: ['geo'], points: 2 }, { blocks: ['est'], points: 2 },
-      ],
+      info: 'Formato actual (PAU 2026): se responden 5 preguntas de 2 puntos, tres obligatorias y dos a elegir entre dos opciones. 90 minutos. Hasta 2024 había que elegir entre la opción A y la B (4 ejercicios de 2,5 puntos).',
     },
     blocks: [
       {

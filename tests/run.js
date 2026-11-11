@@ -7,8 +7,8 @@ const path = require('path');
 const vm = require('vm');
 
 const root = path.join(__dirname, '..');
-const files = ['js/core/util.js', 'js/core/registry.js', 'js/core/store.js', 'js/gen/mathgen.js', 'js/gen/econgen.js',
-  'js/data/mat2.js', 'js/data/matccss.js', 'js/data/eco.js', 'js/core/charts.js'];
+const files = ['js/core/util.js', 'js/core/registry.js', 'js/gen/mathgen.js', 'js/gen/econgen.js',
+  'js/data/mat2.js', 'js/data/matccss.js', 'js/data/eco.js', 'js/data/pau-types.js', 'pau/mat2.js', 'pau/matccss.js', 'pau/eco.js', 'js/core/charts.js'];
 
 const mem = {};
 const ctx = { window: {}, localStorage: { getItem: (k) => mem[k] || null, setItem: (k, v) => { mem[k] = v; } }, console, Math, Date, JSON };
@@ -85,16 +85,23 @@ for (const sid of P.subjectOrder) {
     (t.questions || []).forEach((q) => checkQuestion(q.id, q));
     (t.problems || []).forEach((q) => checkQuestion(q.id, q));
   }
-  // Las ranuras del simulacro deben poder rellenarse
-  s.exam.slots.forEach((sl, i) => {
-    let topics = P.allTopics(sid);
-    if (sl.topics) topics = sl.topics.map((x) => s.topics[x]);
-    else if (sl.blocks) topics = s.blocks.filter((b) => sl.blocks.includes(b.id)).flatMap((b) => b.topics);
-    if (topics.some((x) => !x)) fail(`${sid} slot ${i}`, 'tema inexistente');
-    const hasStatic = topics.some((x) => (x.problems || []).some((p) => (sl.kind === 'teoria' ? p.kind === 'teoria' : p.kind !== 'teoria')));
-    const hasGen = topics.some((x) => (x.gens || []).length);
-    if (sl.kind === 'teoria' ? !hasStatic : !(hasStatic || hasGen)) fail(`${sid} slot ${i}`, 'no hay preguntas para esta ranura');
+  // Recopilación de exámenes oficiales
+  const pau = P.pau[sid];
+  if (!pau || !pau.items.length) { fail(sid, 'sin ejercicios PAU'); continue; }
+  const types = new Set(P.pauTypes[sid].map((t) => t.id));
+  P.pauTypes[sid].forEach((t) => (t.topics || []).forEach((x) => { if (!s.topics[x]) fail(`${sid}/tipo ${t.id}`, `tema inexistente ${x}`); }));
+  const ids = new Set();
+  pau.items.forEach((it) => {
+    const w = `${sid}/${it.y}-${it.c}-${it.v}-${it.k}`;
+    if (ids.has(w)) fail(w, 'duplicado'); ids.add(w);
+    if (!it.t.length) fail(w, 'sin tipo');
+    it.t.forEach((x) => { if (!types.has(x)) fail(w, `tipo desconocido ${x}`); });
+    [it.img, it.sol].filter(Boolean).forEach((f) => { if (!fs.existsSync(path.join(root, f))) fail(w, `falta imagen ${f}`); });
+    if (!(it.w > 0 && it.h > 0)) fail(w, 'sin tamaño');
+    if (!pau.urls[it.u]) fail(w, 'sin URL de origen');
   });
+  P.pauTypes[sid].forEach((t) => { if (!pau.items.some((i) => i.t.includes(t.id))) fail(`${sid}/tipo ${t.id}`, 'tipo vacío'); });
+  console.log(`${sid}: ${pau.items.length} ejercicios PAU, ${pau.items.filter((i) => i.sol).length} con solución`);
 }
 
 // Parser

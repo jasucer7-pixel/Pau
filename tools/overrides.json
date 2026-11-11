@@ -1,0 +1,616 @@
+{
+"mat2-2024-ext-1-A.3": [
+"metrica",
+"rectasplanos"
+],
+"mat2-2024-ext-2-B.1": [
+"sistemas"
+],
+"mat2-2024-ext-2-B.2": [
+"teoremas",
+"derivadas"
+],
+"mat2-2024-ext-2-B.3": [
+"rectasplanos",
+"metrica"
+],
+"mat2-2020-ext-1-A.1": [
+"sistemas",
+"matrices"
+],
+"mat2-2020-ext-1-A.4": [
+"probabilidad"
+],
+"mat2-2020-ext-1-B.2": [
+"optimizacion",
+"derivadas"
+],
+"mat2-2022-ext-1-A.1": [
+"sistemas"
+],
+"mat2-2022-ext-2-B.1": [
+"sistemas"
+],
+"mat2-2024-ord-1-A.1": [
+"sistemas"
+],
+"mat2-2024-ord-1-A.2": [
+"derivadas",
+"teoremas"
+],
+"mat2-2024-ord-1-B.2": [
+"integrales",
+"limites"
+],
+"mat2-2024-ord-2-A.1": [
+"sistemas"
+],
+"mat2-2024-ord-2-A.2": [
+"limites",
+"derivadas"
+],
+"mat2-2024-ord-2-B.1": [
+"matrices"
+],
+"mat2-2020-ord-1-A.2": [
+"teoremas",
+"derivadas"
+],
+"mat2-2020-ord-1-B.1": [
+"sistemas"
+],
+"mat2-2020-ord-1-B.3": [
+"metrica",
+"rectasplanos"
+],
+"mat2-2020-ord-2-A.2": [
+"derivadas"
+],
+"mat2-2020-ord-2-B.2": [
+"optimizacion"
+],
+"mat2-2021-ord-1-A.1": [
+"sistemas"
+],
+"mat2-2021-ord-1-B.3": [
+"metrica",
+"rectasplanos"
+],
+"mat2-2021-ord-2-B.1": [
+"sistemas"
+],
+"mat2-2021-ord-2-B.4": [
+"probabilidad",
+"distribuciones"
+],
+"mat2-2022-ord-1-A.2": [
+"limites",
+"integrales"
+],
+"mat2-2022-ord-1-B.1": [
+"sistemas"
+],
+"mat2-2023-ord-1-A.1": [
+"sistemas"
+],
+"mat2-2023-ord-1-B.4": [
+"distribuciones"
+],
+"mat2-2023-ext-1-B.2": [
+"integrales",
+"derivadas"
+],
+"mat2-2023-ext-1-B.3": [
+"metrica",
+"rectasplanos"
+],
+"mat2-2023-ext-1-B.4": [
+"probabilidad",
+"distribuciones"
+],
+"mat2-2023-ext-2-B.1": [
+"sistemas"
+],
+"mat2-2023-ext-2-B.2": [
+"teoremas",
+"integrales"
+],
+"mat2-2023-ext-2-B.4": [
+"distribuciones",
+"probabilidad"
+],
+"mat2-2026-ext-1-2": [
+"integrales"
+],
+"mat2-2026-ext-1-4.2": [
+"metrica",
+"rectasplanos"
+],
+"mat2-2026-ext-1-5.2": [
+"integrales"
+],
+"mat2-2026-ext-2-2": [
+"integrales",
+"derivadas"
+],
+"mat2-2026-ext-2-4.2": [
+"rectasplanos",
+"metrica"
+],
+"mat2-2026-ext-2-5.1": [
+"limites",
+"derivadas"
+],
+"mat2-2026-ext-2-5.2": [
+"integrales"
+],
+"mat2-2026-ord-1-2": [
+"optimizacion"
+],
+"mat2-2026-ord-1-3": [
+"metrica",
+"rectasplanos"
+],
+"mat2-2026-ord-1-4.1": [
+"distribuciones"
+],
+"mat2-2026-ord-2-1": [
+"sistemas"
+],
+"mat2-2026-ord-2-2": [
+"derivadas",
+"integrales"
+],
+"mat2-2026-ord-2-5.1": [
+"derivadas"
+],
+"mat2-2025-ord-1-1.1": [
+"sistemas"
+],
+"mat2-2025-ord-1-2": [
+"integrales",
+"derivadas"
+],
+"mat2-2025-ord-2-2.1": [
+"limites",
+"derivadas"
+],
+"mat2-2025-ord-2-3": [
+"rectasplanos",
+"metrica"
+],
+"mat2-2025-ord-2-4.1": [
+"probabilidad",
+"distribuciones"
+],
+"mat2-2025-ext-1-2": [
+"optimizacion"
+],
+"mat2-2025-ext-1-4.1": [
+"distribuciones",
+"probabilidad"
+],
+"mat2-2021-ext-1-A.1": [
+"sistemas"
+],
+"mat2-2021-ext-1-B.2": [
+"derivadas",
+"integrales"
+],
+"mat2-2019-ext-1-A.2": [
+"derivadas",
+"integrales"
+],
+"mat2-2019-ext-1-B.2": [
+"integrales",
+"derivadas"
+],
+"mat2-2019-ord-1-A.4": [
+"distribuciones",
+"probabilidad"
+],
+"mat2-2019-ord-1-B.1": [
+"sistemas"
+],
+"mat2-2019-ord-2-A.1": [
+"sistemas"
+],
+"mat2-2019-ord-2-A.2": [
+"limites",
+"integrales"
+],
+"mat2-2019-ord-2-B.4": [
+"distribuciones",
+"probabilidad"
+],
+"mat2-2027-mod-1-1": [
+"rectasplanos",
+"metrica"
+],
+"mat2-2027-mod-1-2": [
+"limites",
+"integrales"
+],
+"mat2-2018-ext-1-A.2": [
+"limites",
+"integrales"
+],
+"mat2-2018-ext-1-A.3": [
+"rectasplanos",
+"metrica"
+],
+"mat2-2018-ext-1-B.1": [
+"sistemas"
+],
+"mat2-2018-ext-1-B.2": [
+"limites",
+"derivadas"
+],
+"mat2-2018-ord-1-A.2": [
+"optimizacion",
+"integrales"
+],
+"mat2-2018-ord-1-A.4": [
+"probabilidad"
+],
+"mat2-2018-ord-1-B.2": [
+"limites",
+"integrales"
+],
+"mat2-2018-ord-1-B.4": [
+"probabilidad"
+],
+"mat2-2018-ord-2-B.2": [
+"optimizacion"
+],
+"matccss-2024-ext-1-2": [
+"integrales",
+"funciones"
+],
+"matccss-2024-ext-1-3": [
+"funciones",
+"integrales"
+],
+"matccss-2024-ext-1-5": [
+"pl"
+],
+"matccss-2024-ext-1-10": [
+"probabilidad"
+],
+"matccss-2024-ext-2-1": [
+"matrices"
+],
+"matccss-2024-ext-2-3": [
+"funciones",
+"integrales"
+],
+"matccss-2024-ext-2-5": [
+"pl"
+],
+"matccss-2020-ext-1-A.2": [
+"pl"
+],
+"matccss-2020-ext-1-A.3": [
+"funciones"
+],
+"matccss-2022-ext-1-A.3": [
+"funciones",
+"integrales"
+],
+"matccss-2022-ext-2-A.2": [
+"pl"
+],
+"matccss-2022-ext-2-A.3": [
+"integrales",
+"funciones"
+],
+"matccss-2022-ext-2-B.3": [
+"funciones"
+],
+"matccss-2024-ord-1-3": [
+"funciones",
+"integrales"
+],
+"matccss-2024-ord-1-5": [
+"pl"
+],
+"matccss-2024-ord-1-6": [
+"sistemas"
+],
+"matccss-2024-ord-2-2": [
+"funciones",
+"integrales"
+],
+"matccss-2024-ord-2-5": [
+"pl"
+],
+"matccss-2020-ord-1-A.5": [
+"inferencia"
+],
+"matccss-2021-ord-1-A.3": [
+"funciones"
+],
+"matccss-2021-ord-1-B.2": [
+"pl"
+],
+"matccss-2021-ord-2-A.3": [
+"integrales",
+"funciones"
+],
+"matccss-2021-ord-2-B.2": [
+"sistemas"
+],
+"matccss-2022-ord-1-A.2": [
+"pl"
+],
+"matccss-2022-ord-2-A.2": [
+"pl"
+],
+"matccss-2023-ord-1-B.1": [
+"sistemas"
+],
+"matccss-2023-ord-1-B.2": [
+"pl"
+],
+"matccss-2023-ord-2-A.2": [
+"pl"
+],
+"matccss-2023-ord-2-B.2": [
+"funciones"
+],
+"matccss-2023-ext-1-A.3": [
+"funciones"
+],
+"matccss-2023-ext-1-B.2": [
+"pl"
+],
+"matccss-2023-ext-2-A.2": [
+"funciones"
+],
+"matccss-2026-ext-2-1": [
+"pl"
+],
+"matccss-2026-ext-2-3.2": [
+"probabilidad"
+],
+"matccss-2026-ord-1-2.1": [
+"integrales",
+"funciones"
+],
+"matccss-2026-ord-2-3.1": [
+"funciones",
+"integrales"
+],
+"matccss-2026-ord-2-4.1": [
+"inferencia"
+],
+"matccss-2026-ord-2-4.2": [
+"inferencia"
+],
+"matccss-2025-ord-1-1": [
+"sistemas"
+],
+"matccss-2025-ord-1-3.1": [
+"inferencia"
+],
+"matccss-2025-ord-1-3.2": [
+"inferencia"
+],
+"matccss-2025-ord-2-1": [
+"pl"
+],
+"matccss-2025-ord-2-2.1": [
+"funciones",
+"integrales"
+],
+"matccss-2025-ext-1-1": [
+"inferencia"
+],
+"matccss-2021-ext-1-A.5": [
+"inferencia"
+],
+"matccss-2021-ext-1-B.5": [
+"inferencia"
+],
+"matccss-2019-ext-1-A.2": [
+"funciones",
+"integrales"
+],
+"matccss-2019-ext-1-A.5": [
+"inferencia"
+],
+"matccss-2019-ord-1-A.2": [
+"pl"
+],
+"matccss-2019-ord-1-B.4": [
+"probabilidad"
+],
+"matccss-2019-ord-2-B.2": [
+"pl"
+],
+"matccss-2027-mod-1-1": [
+"pl"
+],
+"matccss-2025-ext-1-2.2": [
+"pl"
+],
+"eco-2024-ext-1-A.6": [
+"p-inventarios"
+],
+"eco-2024-ext-1-B.3": [
+"t-organizacion"
+],
+"eco-2024-ext-1-B.4": [
+"t-finanzas"
+],
+"eco-2024-ext-1-B.6": [
+"p-inversion"
+],
+"eco-2020-ext-2-A.2": [
+"t-marketing"
+],
+"eco-2020-ext-2-A.4": [
+"t-marketing"
+],
+"eco-2020-ext-2-A.5": [
+"p-inventarios"
+],
+"eco-2020-ext-2-B.1": [
+"t-empresa"
+],
+"eco-2022-ext-1-A.4": [
+"t-marketing"
+],
+"eco-2022-ext-2-A.3": [
+"t-empresa"
+],
+"eco-2022-ext-2-A.6": [
+"p-costes"
+],
+"eco-2024-ord-1-A.2": [
+"t-finanzas"
+],
+"eco-2024-ord-1-B.6": [
+"p-inventarios"
+],
+"eco-2024-ord-2-A.2": [
+"t-marketing"
+],
+"eco-2024-ord-2-A.4": [
+"t-marketing"
+],
+"eco-2024-ord-2-A.6": [
+"p-inversion"
+],
+"eco-2024-ord-2-B.3": [
+"t-finanzas",
+"t-produccion"
+],
+"eco-2020-ord-1-B.1": [
+"t-finanzas"
+],
+"eco-2020-ord-1-B.3": [
+"t-marketing"
+],
+"eco-2021-ord-1-A.2": [
+"t-crecimiento"
+],
+"eco-2021-ord-1-A.5": [
+"p-inversion"
+],
+"eco-2021-ord-2-A.5": [
+"p-inventarios"
+],
+"eco-2021-ord-2-A.6": [
+"p-costes"
+],
+"eco-2022-ord-1-A.4": [
+"t-marketing"
+],
+"eco-2023-ord-2-A.1": [
+"t-empresa"
+],
+"eco-2023-ord-2-A.3": [
+"t-crecimiento"
+],
+"eco-2023-ext-1-A.6": [
+"p-inversion"
+],
+"eco-2023-ext-2-A.3": [
+"t-organizacion"
+],
+"eco-2023-ext-2-B.1": [
+"t-finanzas"
+],
+"eco-2026-ext-1-1": [
+"t-entorno",
+"t-empresa"
+],
+"eco-2026-ext-2-1": [
+"t-crecimiento",
+"t-modelo"
+],
+"eco-2026-ext-2-2": [
+"p-productividad"
+],
+"eco-2026-ext-2-4": [
+"p-costes",
+"p-balance"
+],
+"eco-2026-ord-2-2": [
+"p-productividad"
+],
+"eco-2026-ord-2-3": [
+"t-marketing"
+],
+"eco-2026-ord-2-4": [
+"p-costes",
+"t-marketing"
+],
+"eco-2025-ord-1-2": [
+"p-productividad"
+],
+"eco-2021-ext-1-B.1": [
+"t-marketing"
+],
+"eco-2021-ext-1-B.3": [
+"t-produccion"
+],
+"eco-2021-ext-2-B.5": [
+"p-inversion"
+],
+"eco-2019-ext-1-B.4": [
+"t-organizacion"
+],
+"eco-2019-ext-1-B.6": [
+"t-finanzas"
+],
+"eco-2019-ord-2-A.4": [
+"t-marketing"
+],
+"eco-2019-ord-2-A.5": [
+"t-finanzas"
+],
+"eco-2019-ord-2-B.2": [
+"t-marketing"
+],
+"eco-2018-ext-1-A.2": [
+"t-marketing"
+],
+"eco-2018-ext-1-A.6": [
+"t-finanzas"
+],
+"eco-2018-ext-1-B.2": [
+"t-marketing"
+],
+"eco-2018-ext-1-B.3": [
+"p-costes"
+],
+"eco-2018-ord-1-B.1": [
+"t-entorno"
+],
+"eco-2018-ord-1-B.6": [
+"p-costes"
+],
+"eco-2018-ord-2-A.1": [
+"t-finanzas"
+],
+"eco-2018-ord-2-B.1": [
+"t-modelo"
+],
+"eco-2018-ord-2-B.2": [
+"t-entorno"
+],
+"eco-2022-ext-1-B.2": [
+"t-marketing"
+],
+"eco-2022-ext-2-B.2": [
+"t-finanzas"
+],
+"eco-2022-ord-1-B.2": [
+"t-marketing"
+],
+"eco-2022-ord-2-B.2": [
+"t-marketing"
+]
+}
