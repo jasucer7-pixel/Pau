@@ -4,7 +4,7 @@
   const T = P.T;
 
   P.addSubject({
-    id: 'mat2', name: 'Matemáticas II', short: 'Mates II', icon: '∫', color: '#1f4f8f',
+    id: 'mat2', name: 'Matemáticas II', short: 'Mates II', icon: '∫', color: '#3557e0',
     desc: 'Bachillerato de Ciencias y Tecnología. Álgebra, análisis, geometría y probabilidad.',
     exam: {
       duration: 90,

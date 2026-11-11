@@ -29,7 +29,7 @@
     } catch (e) { /* noop */ }
   }
   function setColor(color) {
-    document.documentElement.style.setProperty('--c', color || '#1f4f8f');
+    document.documentElement.style.setProperty('--c', color || '#c8102e');
   }
   function view(html, color) {
     app.innerHTML = `<div class="page">${html}</div>`;
@@ -100,59 +100,207 @@
   });
 
   // ======================= INICIO =======================
+  // Bandera de la Comunidad de Madrid: fondo carmesí con siete estrellas blancas (4 + 3)
+  function starPath(cx, cy, r) {
+    const pts = [];
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + (i * Math.PI) / 5, rr = i % 2 ? r * 0.382 : r;
+      pts.push(`${(cx + rr * Math.cos(a)).toFixed(1)},${(cy + rr * Math.sin(a)).toFixed(1)}`);
+    }
+    return `M${pts.join('L')}Z`;
+  }
+  const FLAG_STARS = [[78, 76], [136, 76], [194, 76], [252, 76], [107, 138], [165, 138], [223, 138]].map(([x, y]) => starPath(x, y, 28)).join('');
+  const madridFlag = (cls = '') => `<svg class="flag ${cls}" viewBox="0 0 330 210" role="img" aria-label="Bandera de la Comunidad de Madrid"><rect width="330" height="210" fill="#c8102e"/><path d="${FLAG_STARS}" fill="#fff"/></svg>`;
+
+  // Contador de visitas (servicio externo gratuito; si falla, se oculta)
+  const visits = { value: null, loading: null };
+  function loadVisits() {
+    if (visits.value != null) return Promise.resolve(visits.value);
+    if (visits.loading) return visits.loading;
+    let first = true;
+    try { first = !sessionStorage.getItem('pau-visit'); } catch (e) { /* noop */ }
+    const base = 'https://abacus.jasoncameron.dev';
+    const url = `${base}/${first ? 'hit' : 'get'}/pau-madrid-practica/visitas`;
+    visits.loading = fetch(url, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then((d) => {
+        try { sessionStorage.setItem('pau-visit', '1'); } catch (e) { /* noop */ }
+        visits.value = +d.value || null; return visits.value;
+      })
+      .catch(() => null);
+    return visits.loading;
+  }
+  function paintVisits() {
+    loadVisits().then((v) => {
+      $$('[data-visits]').forEach((el) => {
+        if (v) { el.textContent = v.toLocaleString('es-ES'); el.closest('[data-visits-box]')?.removeAttribute('hidden'); }
+      });
+    });
+  }
+
+  // Fecha orientativa de la PAU ordinaria (Madrid suele celebrarla la primera semana de junio)
+  function nextPau() {
+    const now = new Date();
+    let y = now.getFullYear();
+    let d = new Date(y, 5, 1);
+    if (now > new Date(y, 5, 5)) d = new Date(++y, 5, 1);
+    return { date: d, days: Math.max(0, Math.ceil((d - now) / 864e5)), year: y };
+  }
+
+  function dailyItem() {
+    const all = P.subjectOrder.flatMap((sid) => pauItems(sid).filter((i) => i.sol).map((it) => ({ sid, it })));
+    if (!all.length) return null;
+    const t = new Date(); const seed = t.getFullYear() * 1000 + t.getMonth() * 40 + t.getDate();
+    return all[Math.floor(P.rng(seed)() * all.length)];
+  }
+  function allMc() {
+    return P.subjectOrder.flatMap((sid) => P.allTopics(sid).flatMap((t) => (t.questions || []).filter((q) => q.type === 'mc').map((q) => ({ sid, t, q }))));
+  }
+
   function viewHome() {
     const total = P.subjectOrder.reduce((a, sid) => a + pauItems(sid).length, 0);
     const nExams = P.subjectOrder.reduce((a, sid) => a + examsOf(sid).length, 0);
     const years = P.subjectOrder.flatMap((sid) => pauItems(sid).map((i) => i.y)).filter((y) => y < 2027);
-    const y0 = Math.min(...years), y1 = Math.max(...years);
-    const cols = P.subjectOrder.map((sid) => {
+    const nTopics = P.subjectOrder.reduce((a, sid) => a + P.allTopics(sid).length, 0);
+    const nQs = allMc().length;
+    const pau = nextPau();
+    const daily = dailyItem();
+
+    const picks = P.subjectOrder.map((sid) => {
+      const s = P.subjects[sid];
+      return `<a class="pick" href="#/s/${sid}" style="--c:${s.color}">
+        <span class="subject-icon">${s.icon}</span>
+        <span class="pick-txt"><b>${esc(s.name)}</b><small>${pauItems(sid).length} ejercicios · ${examsOf(sid).length} exámenes · ${P.allTopics(sid).length} temas</small></span>
+        <span class="pick-go" aria-hidden="true">→</span>
+      </a>`;
+    }).join('');
+
+    const cards = P.subjectOrder.map((sid) => {
       const s = P.subjects[sid];
       const items = pauItems(sid);
-      const top = pauTypes(sid).map((t) => ({ t, n: items.filter((i) => i.t.includes(t.id)).length })).sort((a, b) => b.n - a.n).slice(0, 5);
-      const last = lastExam(sid);
-      return `<article class="subj-col" style="--c:${s.color}">
-        <header>
-          <a class="subj-mark" href="#/s/${sid}" aria-hidden="true" tabindex="-1">${s.icon}</a>
-          <div><h2><a href="#/s/${sid}">${esc(s.name)}</a></h2><p>${esc(s.desc)}</p></div>
-        </header>
-        <ul class="subj-menu">
-          <li><a href="#/s/${sid}/pau"><span>Ejercicios PAU por tipo</span><b>${items.length}</b></a></li>
-          <li><a href="#/s/${sid}/examenes"><span>Exámenes completos</span><b>${examsOf(sid).length}</b></a></li>
-          <li><a href="#/s/${sid}/teoria"><span>Teoría</span><b>${P.allTopics(sid).length} temas</b></a></li>
-          <li><a href="#/s/${sid}/practicar"><span>Practicar</span><b>con corrección</b></a></li>
-          <li><a href="#/s/${sid}/formulario"><span>Formulario</span><b>imprimible</b></a></li>
-        </ul>
-        <h3 class="mini-h">Lo que más cae</h3>
-        <ol class="subj-top">${top.map(({ t, n }) => `<li><a href="#/s/${sid}/pau/${t.id}"><span>${esc(t.name)}</span><b>${n}</b></a></li>`).join('')}</ol>
-        ${last ? `<p class="subj-last"><span>Último examen</span><a href="#/s/${sid}/examen/${last.id}">${esc(examName(Object.assign({ sid }, last), false))}</a></p>` : ''}
+      const top = pauTypes(sid).map((t) => ({ t, n: items.filter((i) => i.t.includes(t.id)).length })).sort((a, b) => b.n - a.n).slice(0, 3);
+      return `<article class="subject-card" style="--c:${s.color}">
+        <a class="subject-top" href="#/s/${sid}">
+          <div class="subject-icon">${s.icon}</div>
+          <div><h3>${esc(s.name)}</h3><p>${esc(s.desc)}</p></div>
+        </a>
+        <nav class="subject-links">
+          <a href="#/s/${sid}/pau">${icon.grid}<span>Ejercicios PAU por tipos</span><b>${items.length}</b></a>
+          <a href="#/s/${sid}/examenes">${icon.file}<span>Exámenes completos</span><b>${examsOf(sid).length}</b></a>
+          <a href="#/s/${sid}/teoria">${icon.book}<span>Teoría</span><b>${P.allTopics(sid).length}</b></a>
+          <a href="#/s/${sid}/practicar">${icon.pen}<span>Practicar</span><b>∞</b></a>
+        </nav>
+        <div class="subject-hot"><span>🔥 Lo que más cae:</span> ${top.map(({ t }) => `<a href="#/s/${sid}/pau/${t.id}">${esc(t.name)}</a>`).join(' · ')}</div>
       </article>`;
     }).join('');
+
     view(`
-      <section class="intro">
+      <section class="hero home-hero">
         <div>
-          <p class="eyebrow">PAU · Comunidad de Madrid</p>
-          <h1>Los exámenes de la PAU, ordenados por tipo de ejercicio</h1>
-          <p class="lead">Cada examen oficial desde ${y0}, separado ejercicio a ejercicio y con su solución oficial. Practica un tipo concreto de problema o haz un examen entero con el tiempo real.</p>
+          <p class="eyebrow flag-eyebrow">${madridFlag('mini')} Comunidad de Madrid · PAU ${pau.year}</p>
+          <h1>Aprueba la PAU con <span class="hl">todos los exámenes oficiales</span></h1>
+          <p class="lead">${total} ejercicios reales de ${nExams} exámenes (${Math.min(...years)}–${Math.max(...years)}), clasificados por tipo y con su solución oficial. Más teoría, formularios y ejercicios ilimitados con corrección automática.</p>
+          <div class="hero-cta">
+            <a class="btn primary lg" href="#elige">${icon.play} Empezar a estudiar</a>
+            <a class="btn lg" href="#/s/${P.subjectOrder[0]}/examenes">${icon.file} Ver exámenes</a>
+          </div>
+          <ul class="trust"><li>✓ Gratis</li><li>✓ Sin registro</li><li>✓ Soluciones oficiales</li><li data-visits-box hidden>👀 <b data-visits>—</b> visitas</li></ul>
         </div>
-        <dl class="facts">
-          <div><dt>Ejercicios</dt><dd>${total.toLocaleString('es-ES')}</dd></div>
-          <div><dt>Exámenes</dt><dd>${nExams}</dd></div>
-          <div><dt>Años</dt><dd>${y0}–${String(y1).slice(2)}</dd></div>
-        </dl>
+        <div class="card pick-card" id="elige">
+          <div class="pick-head">${madridFlag('pick-flag')}<div><h2>¿Qué asignatura quieres estudiar?</h2><p class="muted small">Elige una y verás todo lo que tienes para prepararla.</p></div></div>
+          <div class="picks">${picks}</div>
+          <p class="muted small pick-soon">Próximamente: ${OTHER_SUBJECTS.slice(0, 5).map(esc).join(', ')} y más.</p>
+        </div>
       </section>
-      <section class="subjects-index" aria-label="Asignaturas">${cols}</section>
+
+      <section class="stats home-stats">
+        <div class="stat"><div class="v">${total}</div><div class="l">ejercicios oficiales</div></div>
+        <div class="stat"><div class="v">${nExams}</div><div class="l">exámenes completos</div></div>
+        <div class="stat"><div class="v">${nTopics}</div><div class="l">temas de teoría</div></div>
+        <div class="stat"><div class="v">${nQs}</div><div class="l">preguntas tipo test</div></div>
+        <div class="stat visits-stat" data-visits-box hidden><div class="v" data-visits>—</div><div class="l">visitas a la web</div></div>
+      </section>
+
+      <section class="home-grid">
+        <div class="card countdown">
+          <p class="eyebrow">Cuenta atrás</p>
+          <div class="big">${pau.days}</div>
+          <p class="cd-label">días para la PAU ${pau.year}</p>
+          <p class="muted small">Fecha orientativa: la convocatoria ordinaria de Madrid suele ser la primera semana de junio.</p>
+          <div class="cd-plan"><b>${Math.max(1, Math.ceil(total / Math.max(1, pau.days)))}</b> ejercicios al día y llegas habiendo hecho <b>todos</b> los de la PAU.</div>
+        </div>
+        <div class="card quick-quiz" id="quiz"></div>
+      </section>
+
+      ${daily ? `<section class="section daily">
+        <div class="section-head"><div><p class="eyebrow">Cada día uno distinto</p><h2>Ejercicio PAU del día</h2></div><a class="btn sm" href="#/s/${daily.sid}/pau/${daily.it.t[0]}">Más ejercicios de este tipo →</a></div>
+        <div style="--c:${P.subjects[daily.sid].color}"><p class="daily-subj"><span class="chip c">${esc(P.subjects[daily.sid].name)}</span></p>${pauCard(daily.sid, daily.it, {})}</div>
+      </section>` : ''}
+
       <section class="section">
-        <div class="section-head"><h2>Cómo sacarle partido</h2></div>
-        <ol class="howto">
-          <li><h3>Empieza por lo que más cae</h3><p>En «Ejercicios PAU por tipo» tienes todos los problemas de un mismo tipo seguidos. Intenta cada uno en papel antes de abrir la solución.</p></li>
-          <li><h3>Repasa la teoría que falle</h3><p>Cada tipo enlaza con su tema de teoría: fórmulas, métodos y ejemplos resueltos. El formulario se puede imprimir.</p></li>
-          <li><h3>Haz exámenes completos</h3><p>Cuando domines los tipos, haz un examen entero en modo examen: ${P.subjects[P.subjectOrder[0]].exam.duration} minutos y soluciones ocultas hasta terminar.</p></li>
-        </ol>
+        <div class="section-head"><h2>Todo lo que hay en cada asignatura</h2></div>
+        <div class="grid subjects">${cards}</div>
       </section>
-      <p class="soon-line"><b>Próximamente:</b> ${OTHER_SUBJECTS.map(esc).join(', ')}.</p>`, '#1f4f8f');
+
+      <section class="section">
+        <div class="section-head"><h2>Cómo usar la web para aprobar</h2></div>
+        <div class="steps four">
+          <div class="step"><div class="n">1</div><h3>Repasa la teoría</h3><p>Cada tema tiene resumen, fórmulas, método paso a paso, errores típicos y ejemplos resueltos.</p></div>
+          <div class="step"><div class="n">2</div><h3>Practica por tipos</h3><p>Haz seguidos todos los ejercicios PAU de un mismo tipo hasta que te salgan solos.</p></div>
+          <div class="step"><div class="n">3</div><h3>Entrena sin límite</h3><p>Ejercicios generados al momento que se corrigen solos y tests para la teoría.</p></div>
+          <div class="step"><div class="n">4</div><h3>Simula el examen</h3><p>Haz exámenes completos con cronómetro de 90 minutos y corrígelos con la solución oficial.</p></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head"><h2>Consejos para el día del examen</h2></div>
+        <div class="tips-grid">
+          <div class="tip-card"><b>⏱️ Reparte el tiempo</b><p>Lee todo el examen al principio y asigna minutos a cada pregunta según su puntuación.</p></div>
+          <div class="tip-card"><b>✍️ Justifica cada paso</b><p>En la PAU se puntúa el razonamiento. Un resultado sin explicación puede valer cero.</p></div>
+          <div class="tip-card"><b>🎯 Elige bien la opción</b><p>Antes de empezar, decide qué preguntas optativas vas a hacer y no cambies a mitad.</p></div>
+          <div class="tip-card"><b>🔁 Revisa al final</b><p>Deja 10 minutos para repasar cálculos, signos y unidades.</p></div>
+          <div class="tip-card"><b>📏 Presentación</b><p>Letra clara, resultados recuadrados y los apartados en orden. El corrector lo agradecerá.</p></div>
+          <div class="tip-card"><b>😴 Descansa</b><p>La noche anterior, duerme. Rinde más un repaso corto que una noche en vela.</p></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head"><h2>Preguntas frecuentes</h2></div>
+        <div class="faq">
+          <details><summary>¿Los exámenes son los oficiales?</summary><p>Sí. Son los exámenes y soluciones publicados por las universidades públicas de la Comunidad de Madrid, separados ejercicio a ejercicio. Cada ejercicio enlaza al PDF original.</p></details>
+          <details><summary>¿Tengo que registrarme o pagar?</summary><p>No. La web es gratuita y no hace falta crear ninguna cuenta.</p></details>
+          <details><summary>¿Cómo se corrigen los ejercicios de práctica?</summary><p>Los ejercicios numéricos se generan al momento y se corrigen automáticamente: puedes escribir fracciones, decimales con coma, potencias o raíces. Si fallas, ves la solución paso a paso.</p></details>
+          <details><summary>¿Qué formato tiene el examen?</summary><p>Lo tienes explicado en la página de inicio de cada asignatura, junto con el último examen publicado.</p></details>
+          <details><summary>¿Habrá más asignaturas?</summary><p>Sí. Próximamente: ${OTHER_SUBJECTS.map(esc).join(', ')}.</p></details>
+        </div>
+      </section>
+      <p class="muted small">Fuente de los exámenes y soluciones: Universidad Complutense de Madrid (exámenes oficiales de las universidades públicas de la Comunidad de Madrid).</p>`, '#c8102e');
+    bindCards(app);
+    paintVisits();
+    renderQuickQuiz();
   }
-  function lastExam(sid) {
-    return examsOf(sid).filter((e) => e.c !== 'modelo').sort((a, b) => b.y - a.y || (b.c === 'extraordinaria') - (a.c === 'extraordinaria') || a.v - b.v)[0];
+
+  function renderQuickQuiz() {
+    const box = $('#quiz'); if (!box) return;
+    const pool = allMc(); if (!pool.length) { box.hidden = true; return; }
+    const { sid, t, q } = pool[Math.floor(Math.random() * pool.length)];
+    const s = P.subjects[sid];
+    box.style.setProperty('--c', s.color);
+    box.innerHTML = `<div class="qq-head"><p class="eyebrow">Pregunta rápida</p><span class="chip c">${esc(s.short)} · ${esc(t.name)}</span></div>
+      <div class="qprompt">${q.prompt}</div>
+      <div class="options">${q.options.map((o, i) => `<button class="opt" data-qq="${i}"><span class="k">${'ABCD'[i]}</span><span>${o}</span></button>`).join('')}</div>
+      <div class="qq-fb"></div>
+      <div class="btn-row qq-actions"><button class="btn sm" data-act="qq-next">Otra pregunta</button><a class="btn sm ghost" href="#/s/${sid}/practicar?tema=${t.id}">Practicar este tema →</a></div>`;
+    renderMath(box);
+    $$('[data-qq]', box).forEach((b) => b.addEventListener('click', () => {
+      if (box.dataset.done) return; box.dataset.done = 1;
+      const i = +b.dataset.qq;
+      $$('[data-qq]', box).forEach((o) => { o.classList.add('locked'); if (+o.dataset.qq === q.answer) o.classList.add('right'); });
+      if (i !== q.answer) b.classList.add('wrong');
+      $('.qq-fb', box).innerHTML = `<div class="feedback ${i === q.answer ? 'ok' : 'bad'}"><div class="feedback-head">${i === q.answer ? '✅ ¡Correcto!' : '❌ No es correcto'}</div><div class="feedback-body">${q.solution || ''}</div></div>`;
+      renderMath($('.qq-fb', box));
+    }));
+    $('[data-act=qq-next]', box).addEventListener('click', () => { delete box.dataset.done; renderQuickQuiz(); });
   }
 
   // ======================= ASIGNATURA: cabecera y subnavegación =======================
@@ -168,7 +316,7 @@
       ${crumbs(cr.concat(extraCrumbs))}
       <header class="subj-head">
         <a class="subject-icon sm" href="#/s/${sid}">${s.icon}</a>
-        <h1>${esc(s.name)}</h1>
+        <div><p class="eyebrow">${esc(s.short)}</p><h1>${esc(s.name)}</h1></div>
       </header>
       <nav class="subnav" aria-label="Secciones de ${esc(s.short)}">${SECTIONS.map(([k, n]) => `<a href="#/s/${sid}${k ? '/' + k : ''}" class="${k === active ? 'active' : ''}">${n}</a>`).join('')}</nav>
       ${body}`, s.color);
@@ -179,7 +327,7 @@
     if (!s) return notFound();
     const items = pauItems(sid);
     const types = pauTypes(sid).map((t) => ({ t, n: items.filter((i) => i.t.includes(t.id)).length })).sort((a, b) => b.n - a.n).slice(0, 6);
-    const last = lastExam(sid);
+    const last = examsOf(sid).filter((e) => e.c !== 'modelo').sort((a, b) => b.y - a.y || (b.c === 'extraordinaria') - (a.c === 'extraordinaria') || a.v - b.v)[0];
     const topics = P.allTopics(sid);
     const gens = new Set(topics.flatMap((t) => t.gens || [])).size;
     subjectShell(sid, '', `
@@ -357,7 +505,7 @@
         $$('details.offsol').forEach((d) => { d.hidden = false; });
         finBtn.hidden = true; startBtn.hidden = true;
         $('#timer').textContent = 'Fin';
-        toast(auto ? 'Se acabó el tiempo. Ya puedes ver las soluciones.' : 'Ya puedes ver las soluciones de cada ejercicio.');
+        toast(auto ? '⏰ ¡Tiempo! Ya puedes ver las soluciones.' : 'Ya puedes ver las soluciones de cada ejercicio.');
       };
       startBtn.addEventListener('click', () => {
         start = Date.now(); startBtn.hidden = true; finBtn.hidden = false;
@@ -387,31 +535,77 @@
   function viewTopic(sid, tid) {
     const s = P.subjects[sid]; const t = s && s.topics[tid];
     if (!t) return notFound();
+    const plus = (P.theoryPlus[sid] || {})[tid] || {};
     const types = pauTypes(sid).filter((x) => (x.topics || []).includes(tid));
     const examples = (t.problems || []);
+    const all = P.allTopics(sid); const k = all.indexOf(t);
+    const prev = all[k - 1], nextT = all[k + 1];
+    const official = pauItems(sid).filter((i) => i.t.some((x) => types.some((ty) => ty.id === x)))
+      .sort((a, b) => b.y - a.y || a.o - b.o).filter((i) => i.y < 2027).slice(0, 2);
+    const quiz = (t.questions || []).filter((q) => q.type === 'mc').slice(0, 4);
+    const html = (t.theory || '') + (plus.html || '');
+    const words = html.replace(/<[^>]+>|\$[^$]*\$/g, ' ').split(/\s+/).filter(Boolean).length;
+    let n = 0;
+    const withIds = html.replace(/<h3>/g, () => `<h3 id="sec-${++n}">`);
+    const heads = [...withIds.matchAll(/<h3 id="(sec-\d+)">([\s\S]*?)<\/h3>/g)].map((m) => [m[1], m[2]]);
+    const extra = [];
+    if (plus.steps) extra.push(['sec-steps', 'Cómo resolverlo en la PAU']);
+    if (plus.mistakes) extra.push(['sec-mistakes', 'Errores típicos']);
+    if (examples.length) extra.push(['sec-ex', 'Ejemplos resueltos']);
+    if (official.length) extra.push(['sec-pau', 'Así cae en la PAU']);
+    if (quiz.length) extra.push(['sec-quiz', 'Comprueba lo que sabes']);
     subjectShell(sid, 'teoria', `
       <div class="topic-layout">
         <article class="theory">
+          <p class="eyebrow">${esc(t.block ? (s.blocks.find((b) => b.id === t.block) || {}).name || '' : '')} · ${Math.max(1, Math.round(words / 180))} min de lectura</p>
           <h2 style="margin-bottom:.2em">${esc(t.name)}</h2><p class="muted">${esc(t.summary || '')}</p>
-          ${t.theory || ''}
-          ${examples.length ? `<h3>Ejemplos resueltos</h3>${examples.map((p, i) => `<article class="problem"><div class="problem-head"><b>${p.kind === 'teoria' ? 'Pregunta' : 'Ejemplo'} ${i + 1}</b></div><div class="problem-body">${p.prompt}</div><details class="sol"><summary>Ver solución</summary><div class="sol-body">${p.solution}</div></details></article>`).join('')}` : ''}
+          ${withIds}
+          ${plus.steps ? `<h3 id="sec-steps">Cómo resolverlo en la PAU</h3><ol class="method">${plus.steps.map((x) => `<li>${x}</li>`).join('')}</ol>` : ''}
+          ${plus.mistakes ? `<h3 id="sec-mistakes">Errores típicos</h3><ul class="mistakes">${plus.mistakes.map((x) => `<li>${x}</li>`).join('')}</ul>` : ''}
+          ${examples.length ? `<h3 id="sec-ex">Ejemplos resueltos</h3>${examples.map((p, i) => `<article class="problem"><div class="problem-head"><b>${p.kind === 'teoria' ? 'Pregunta' : 'Ejemplo'} ${i + 1}</b></div><div class="problem-body">${p.prompt}</div><details class="sol"><summary>Ver solución</summary><div class="sol-body">${p.solution}</div></details></article>`).join('')}` : ''}
+          ${official.length ? `<h3 id="sec-pau">Así cae en la PAU</h3><p class="muted small">Los ejercicios oficiales más recientes de este tema.</p>${official.map((it) => pauCard(sid, it, {})).join('')}
+            ${types.length ? `<div class="btn-row">${types.map((x) => `<a class="btn sm" href="#/s/${sid}/pau/${x.id}">${icon.grid} Todos los de «${esc(x.name)}»</a>`).join('')}</div>` : ''}` : ''}
+          ${quiz.length ? `<h3 id="sec-quiz">Comprueba lo que sabes</h3><div class="mini-quiz">${quiz.map((q, qi) => `<div class="mq" data-mq="${qi}"><div class="qprompt"><b>${qi + 1}.</b> ${q.prompt}</div><div class="options">${q.options.map((o, i) => `<button class="opt" data-o="${i}"><span class="k">${'ABCD'[i]}</span><span>${o}</span></button>`).join('')}</div><div class="mq-fb"></div></div>`).join('')}</div>` : ''}
+          <nav class="topic-pager">
+            ${prev ? `<a class="btn" href="#/s/${sid}/teoria/${prev.id}">← ${esc(prev.name)}</a>` : '<span></span>'}
+            ${nextT ? `<a class="btn primary" href="#/s/${sid}/teoria/${nextT.id}">${esc(nextT.name)} →</a>` : ''}
+          </nav>
         </article>
         <aside class="topic-aside">
+          <div class="card toc">
+            <h3>En este tema</h3>
+            <ol>${heads.concat(extra).map(([id, txt]) => `<li><a href="#/s/${sid}/teoria/${tid}" data-jump="${id}">${txt}</a></li>`).join('')}</ol>
+          </div>
           <div class="card">
             <h3>Siguiente paso</h3>
             ${types.map((x) => `<a class="aside-link" href="#/s/${sid}/pau/${x.id}">${icon.grid}<span>Ejercicios PAU: ${esc(x.name)}</span><b>${pauItems(sid).filter((i) => i.t.includes(x.id)).length}</b></a>`).join('')}
             <a class="aside-link" href="#/s/${sid}/practicar?tema=${tid}">${icon.pen}<span>Practicar este tema</span></a>
+            <a class="aside-link" href="#/s/${sid}/formulario">${icon.sigma}<span>Formulario de la asignatura</span></a>
           </div>
         </aside>
       </div>`, [[t.name]]);
+    bindCards(app);
+    $$('[data-jump]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); const el = document.getElementById(a.dataset.jump); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }));
+    $$('.mq').forEach((box) => {
+      const q = quiz[+box.dataset.mq];
+      $$('[data-o]', box).forEach((b) => b.addEventListener('click', () => {
+        if (box.dataset.done) return; box.dataset.done = 1;
+        const i = +b.dataset.o;
+        $$('[data-o]', box).forEach((o) => { o.classList.add('locked'); if (+o.dataset.o === q.answer) o.classList.add('right'); });
+        if (i !== q.answer) b.classList.add('wrong');
+        const fb = $('.mq-fb', box);
+        fb.innerHTML = `<div class="feedback ${i === q.answer ? 'ok' : 'bad'}"><div class="feedback-head">${i === q.answer ? '✅ ¡Correcto!' : '❌ No es correcto'}</div><div class="feedback-body">${q.solution || ''}</div></div>`;
+        renderMath(fb);
+      }));
+    });
   }
 
   // ======================= FORMULARIO =======================
   function viewFormulario(sid) {
     const topics = P.allTopics(sid);
     subjectShell(sid, 'formulario', `
-      <div class="btn-row no-print" style="justify-content:space-between;align-items:center;margin-bottom:10px"><nav class="formulario-toc">${topics.map((t) => `<a class="chip c" href="#/s/${sid}/formulario" data-jump="f-${t.id}">${esc(t.name)}</a>`).join('')}</nav><button class="btn" onclick="window.print()">Imprimir / PDF</button></div>
-      ${topics.map((t) => `<section class="formulario-topic theory" id="f-${t.id}"><h2>${esc(t.name)}</h2>${t.theory || ''}</section>`).join('')}`);
+      <div class="btn-row no-print" style="justify-content:space-between;align-items:center;margin-bottom:10px"><nav class="formulario-toc">${topics.map((t) => `<a class="chip c" href="#/s/${sid}/formulario" data-jump="f-${t.id}">${esc(t.name)}</a>`).join('')}</nav><button class="btn" onclick="window.print()">🖨️ Imprimir / PDF</button></div>
+      ${topics.map((t) => `<section class="formulario-topic theory" id="f-${t.id}"><h2>${esc(t.name)}</h2>${t.theory || ''}${((P.theoryPlus[sid] || {})[t.id] || {}).html || ''}</section>`).join('')}`);
     $$('[data-jump]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); document.getElementById(a.dataset.jump).scrollIntoView({ behavior: 'smooth' }); }));
   }
 
@@ -570,13 +764,13 @@
         score = ok === q.fields.length ? 1 : ok > 0 && q.fields.length > 1 ? 0.5 : 0;
         if (score === 0.5) extra = ` (${ok} de ${q.fields.length} apartados)`;
       }
-      const head = score === 1 ? 'Correcto' : score > 0 ? `Casi${extra}` : giveup ? 'Solución' : 'No es correcto';
+      const head = score === 1 ? '✅ ¡Correcto!' : score > 0 ? `🟡 Casi${extra}` : giveup ? '📖 Solución' : '❌ No es correcto';
       showFeedback(score === 1 ? 'ok' : score > 0 || giveup ? 'neutral' : 'bad', head, score < 1);
       finish(score, true);
     }
     function reveal() {
-      showFeedback('neutral', 'Solución', true);
-      qa.innerHTML = `<span class="muted small">¿Cómo te ha salido?</span><div class="right"><button class="btn sm" data-act="self0">Mal</button><button class="btn sm" data-act="self0.5">A medias</button><button class="btn sm primary" data-act="self1">Bien</button></div>`;
+      showFeedback('neutral', '📖 Solución', true);
+      qa.innerHTML = `<span class="muted small">¿Cómo te ha salido?</span><div class="right"><button class="btn sm" data-act="self0">❌ Mal</button><button class="btn sm" data-act="self0.5">🟡 A medias</button><button class="btn sm primary" data-act="self1">✅ Bien</button></div>`;
       it.revealed = true;
     }
     function showFeedback(kind, head, open) {
@@ -626,7 +820,7 @@
     const score = ss.items.reduce((a, x) => a + (x.score || 0), 0);
     const p = total ? score / total : 0;
     const s = P.subjects[ss.subject];
-    const msg = p >= 0.9 ? 'Excelente' : p >= 0.7 ? 'Muy bien' : p >= 0.5 ? 'Vas por buen camino' : 'Hay que darle otra vuelta';
+    const msg = p >= 0.9 ? '¡Espectacular! 🏆' : p >= 0.7 ? '¡Muy bien! 💪' : p >= 0.5 ? 'Vas por buen camino 👍' : 'Sigue practicando, ¡se aprende fallando! 📚';
     view(`<div class="session summary"><div class="qcard">
       <p class="eyebrow">${esc(ss.title)}</p>
       <h2>${msg}</h2>
@@ -652,7 +846,7 @@
   }
 
   function notFound() {
-    view(`<div class="card empty"><div class="em">404</div><h2>Página no encontrada</h2><a class="btn primary" href="#/">Volver al inicio</a></div>`);
+    view(`<div class="card empty"><div class="em">🧭</div><h2>Página no encontrada</h2><a class="btn primary" href="#/">Volver al inicio</a></div>`);
   }
 
   // ======================= ROUTER =======================
@@ -687,7 +881,7 @@
   function safeRoute() {
     try { route(); } catch (e) {
       console.error(e);
-      app.innerHTML = '<div class="page"><div class="card empty"><h2>Algo ha fallado al mostrar esta página</h2><p>Prueba a recargar la página o vuelve al inicio.</p><div class="btn-row" style="justify-content:center"><button class="btn primary" onclick="location.reload()">Recargar</button><a class="btn" href="#/">Ir al inicio</a></div></div></div>';
+      app.innerHTML = '<div class="page"><div class="card empty"><div class="em">⚠️</div><h2>Algo ha fallado al mostrar esta página</h2><p>Prueba a recargar la página o vuelve al inicio.</p><div class="btn-row" style="justify-content:center"><button class="btn primary" onclick="location.reload()">Recargar</button><a class="btn" href="#/">Ir al inicio</a></div></div></div>';
     }
   }
   window.addEventListener('hashchange', safeRoute);

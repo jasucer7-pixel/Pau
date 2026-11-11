@@ -8,7 +8,7 @@ const vm = require('vm');
 
 const root = path.join(__dirname, '..');
 const files = ['js/core/util.js', 'js/core/registry.js', 'js/gen/mathgen.js', 'js/gen/econgen.js',
-  'js/data/mat2.js', 'js/data/matccss.js', 'js/data/eco.js', 'js/data/pau-types.js', 'pau/mat2.js', 'pau/matccss.js', 'pau/eco.js', 'js/core/charts.js'];
+  'js/data/mat2.js', 'js/data/matccss.js', 'js/data/eco.js', 'js/data/theory-plus.js', 'js/data/pau-types.js', 'pau/mat2.js', 'pau/matccss.js', 'pau/eco.js', 'js/core/charts.js'];
 
 const mem = {};
 const ctx = { window: {}, localStorage: { getItem: (k) => mem[k] || null, setItem: (k, v) => { mem[k] = v; } }, console, Math, Date, JSON };
@@ -81,6 +81,12 @@ for (const sid of P.subjectOrder) {
   const s = P.subjects[sid];
   for (const t of P.allTopics(sid)) {
     checkMath(`${sid}/${t.id} [teoría]`, t.theory);
+    const plus = (P.theoryPlus[sid] || {})[t.id];
+    if (!plus) fail(`${sid}/${t.id}`, 'sin teoría ampliada');
+    else {
+      checkMath(`${sid}/${t.id} [ampliación]`, plus.html);
+      (plus.steps || []).concat(plus.mistakes || []).forEach((x, i) => checkMath(`${sid}/${t.id} [lista ${i}]`, x));
+    }
     (t.gens || []).forEach((g) => { if (!P.gens[g]) fail(`${sid}/${t.id}`, `generador inexistente ${g}`); });
     (t.questions || []).forEach((q) => checkQuestion(q.id, q));
     (t.problems || []).forEach((q) => checkQuestion(q.id, q));

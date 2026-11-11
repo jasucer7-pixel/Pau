@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PAU Madrid · Exámenes y práctica</title>
   <meta name="description" content="Practica la PAU de la Comunidad de Madrid: todos los exámenes oficiales clasificados por tipos con su solución, teoría y ejercicios generados de Matemáticas II, Matemáticas CCSS y Economía de la Empresa.">
-  <meta name="theme-color" content="#f5f2ea">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231c1b18'/%3E%3Ctext x='32' y='44' font-family='Georgia' font-weight='700' font-size='34' text-anchor='middle' fill='%23f5f2ea'%3EP%3C/text%3E%3C/svg%3E">
+  <meta name="theme-color" content="#c8102e">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23c8102e'/%3E%3Cpath fill='white' d='M32 12l5.9 12.1 13.3 1.9-9.6 9.4 2.3 13.2L32 42.4l-11.9 6.2 2.3-13.2-9.6-9.4 13.3-1.9z'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="vendor/katex/katex.min.css?v=20261111c">
-  <link rel="stylesheet" href="css/styles.css?v=20261111c">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="vendor/katex/katex.min.css?v=20261112a">
+  <link rel="stylesheet" href="css/styles.css?v=20261112a">
   <script>
     // Aplica el tema antes de pintar para evitar parpadeos
     try {
@@ -25,8 +25,8 @@
   <header class="topbar">
     <div class="topbar-inner">
       <a class="brand" href="#/" aria-label="Inicio">
-        <span class="brand-mark">PAU Madrid</span>
-        <span class="brand-text">exámenes y práctica</span>
+        <span class="brand-mark"><svg viewBox="0 0 24 24" width="18" height="18" fill="#fff" aria-hidden="true"><path d="M12 2.5l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.3l-5.8 3.1 1.1-6.5L2.6 9.3l6.5-.9z"/></svg></span>
+        <span class="brand-text">PAU <b>Madrid</b></span>
       </a>
       <nav class="nav" aria-label="Principal">
         <a href="#/" data-nav="home">Inicio</a>
@@ -53,21 +53,22 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script defer src="vendor/katex/katex.min.js?v=20261111c"></script>
-  <script defer src="vendor/katex/contrib/auto-render.min.js?v=20261111c"></script>
-  <script defer src="js/core/util.js?v=20261111c"></script>
-  <script defer src="js/core/registry.js?v=20261111c"></script>
-  <script defer src="js/gen/mathgen.js?v=20261111c"></script>
-  <script defer src="js/gen/econgen.js?v=20261111c"></script>
-  <script defer src="js/data/mat2.js?v=20261111c"></script>
-  <script defer src="js/data/matccss.js?v=20261111c"></script>
-  <script defer src="js/data/eco.js?v=20261111c"></script>
-  <script defer src="js/data/pau-types.js?v=20261111c"></script>
-  <script defer src="pau/mat2.js?v=20261111c"></script>
-  <script defer src="pau/matccss.js?v=20261111c"></script>
-  <script defer src="pau/eco.js?v=20261111c"></script>
-  <script defer src="js/core/charts.js?v=20261111c"></script>
-  <script defer src="js/app.js?v=20261111c"></script>
+  <script defer src="vendor/katex/katex.min.js?v=20261112a"></script>
+  <script defer src="vendor/katex/contrib/auto-render.min.js?v=20261112a"></script>
+  <script defer src="js/core/util.js?v=20261112a"></script>
+  <script defer src="js/core/registry.js?v=20261112a"></script>
+  <script defer src="js/gen/mathgen.js?v=20261112a"></script>
+  <script defer src="js/gen/econgen.js?v=20261112a"></script>
+  <script defer src="js/data/mat2.js?v=20261112a"></script>
+  <script defer src="js/data/matccss.js?v=20261112a"></script>
+  <script defer src="js/data/eco.js?v=20261112a"></script>
+  <script defer src="js/data/theory-plus.js?v=20261112a"></script>
+  <script defer src="js/data/pau-types.js?v=20261112a"></script>
+  <script defer src="pau/mat2.js?v=20261112a"></script>
+  <script defer src="pau/matccss.js?v=20261112a"></script>
+  <script defer src="pau/eco.js?v=20261112a"></script>
+  <script defer src="js/core/charts.js?v=20261112a"></script>
+  <script defer src="js/app.js?v=20261112a"></script>
   <script>
     // Si algo falla al arrancar (p. ej. archivos antiguos en caché), mostrar un aviso en vez de una página vacía
     (function () {
@@ -77,7 +78,7 @@
         setTimeout(function () {
           var app = document.getElementById('app');
           if (app && !app.querySelector('.page')) {
-            app.innerHTML = '<div class="page"><div class="card empty"><h2>No se ha podido cargar la web</h2>' +
+            app.innerHTML = '<div class="page"><div class="card empty"><div class="em">⚠️</div><h2>No se ha podido cargar la web</h2>' +
               '<p>Probablemente tu navegador tiene guardada una versión antigua. Pulsa el botón para recargarla.</p>' +
               '<button class="btn primary" onclick="location.reload()">Recargar</button></div></div>';
           }
