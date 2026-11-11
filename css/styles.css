@@ -91,7 +91,7 @@ button { font: inherit; color: inherit; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .i-sun { display: none; } :root:not([data-theme="light"]) .i-moon { display: block; } }
 .badge { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--bad); color: #fff; font-size: .72rem; font-weight: 700; line-height: 1; }
 @media (max-width: 560px) {
-  .brand-text { display: none; }
+  .brand-text { font-size: 1.05rem; }
   .nav a { padding: 8px 10px; font-size: .9rem; }
 }
 
@@ -573,3 +573,13 @@ kbd { font: 600 .75rem var(--font); background: var(--surface); border: 1px soli
 .mq .opt { padding: 10px 12px; }
 .topic-pager { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 34px; padding-top: 20px; border-top: 1px solid var(--border); }
 .topic-pager .btn { white-space: normal; text-align: left; }
+
+/* ============ v3: ajustes móvil ============ */
+.nav a { white-space: nowrap; }
+@media (max-width: 480px) {
+  .nav a[data-nav="home"] { display: none; }
+  .topbar-inner { gap: 8px; }
+  .nav { gap: 0; }
+}
+@media (max-width: 900px) { .topic-layout { grid-template-columns: minmax(0, 1fr); } }
+.method li > span { flex: 1; min-width: 0; }

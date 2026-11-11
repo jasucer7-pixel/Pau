@@ -560,7 +560,7 @@
           <p class="eyebrow">${esc(t.block ? (s.blocks.find((b) => b.id === t.block) || {}).name || '' : '')} · ${Math.max(1, Math.round(words / 180))} min de lectura</p>
           <h2 style="margin-bottom:.2em">${esc(t.name)}</h2><p class="muted">${esc(t.summary || '')}</p>
           ${withIds}
-          ${plus.steps ? `<h3 id="sec-steps">Cómo resolverlo en la PAU</h3><ol class="method">${plus.steps.map((x) => `<li>${x}</li>`).join('')}</ol>` : ''}
+          ${plus.steps ? `<h3 id="sec-steps">Cómo resolverlo en la PAU</h3><ol class="method">${plus.steps.map((x) => `<li><span>${x}</span></li>`).join('')}</ol>` : ''}
           ${plus.mistakes ? `<h3 id="sec-mistakes">Errores típicos</h3><ul class="mistakes">${plus.mistakes.map((x) => `<li>${x}</li>`).join('')}</ul>` : ''}
           ${examples.length ? `<h3 id="sec-ex">Ejemplos resueltos</h3>${examples.map((p, i) => `<article class="problem"><div class="problem-head"><b>${p.kind === 'teoria' ? 'Pregunta' : 'Ejemplo'} ${i + 1}</b></div><div class="problem-body">${p.prompt}</div><details class="sol"><summary>Ver solución</summary><div class="sol-body">${p.solution}</div></details></article>`).join('')}` : ''}
           ${official.length ? `<h3 id="sec-pau">Así cae en la PAU</h3><p class="muted small">Los ejercicios oficiales más recientes de este tema.</p>${official.map((it) => pauCard(sid, it, {})).join('')}
