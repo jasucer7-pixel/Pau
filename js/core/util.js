@@ -158,7 +158,7 @@ window.PAU = window.PAU || {};
 
   // ---------- Parser de expresiones (seguro, sin eval) ----------
   // Acepta: 3/4, -2,5, 1.25, 2^3, sqrt(2), √2, pi, π, e, ln(), log(), sin, cos, tan, %, ∞
-  function parseExpr(input) {
+  function parseExpr(input, opts = {}) {
     if (input == null) return NaN;
     let s = String(input).trim().toLowerCase();
     if (!s) return NaN;
@@ -166,7 +166,7 @@ window.PAU = window.PAU || {};
     s = s.replace(/€|euros?|unidades|uds?\.?|años?|días?|dias?/g, '');
     if (/^[+-]?(inf|infinito|∞)$/.test(s)) return s.startsWith('-') ? -Infinity : Infinity;
     // Separador de miles español: 12.500 (solo si encaja exactamente)
-    if (/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) s = s.replace(/\./g, '').replace(',', '.');
+    if (!opts.noThousands && /^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) s = s.replace(/\./g, '').replace(',', '.');
     s = s.replace(/,/g, '.');
     let pos = 0;
     const peek = () => s[pos];
@@ -235,6 +235,12 @@ window.PAU = window.PAU || {};
 
   // Comprueba un campo numérico
   function checkField(field, input) {
+    // "3.385" es ambiguo (3385 con punto de miles o 3,385 con punto decimal): se prueban ambas lecturas
+    const s0 = String(input).trim().replace(/−/g, '-');
+    if (/^-?\d{1,3}\.\d{3}$/.test(s0)) {
+      const alt = checkField(field, s0.replace('.', ','));
+      if (alt.ok) return alt;
+    }
     const v = parseExpr(input);
     if (Number.isNaN(v)) return { ok: false, invalid: true };
     const targets = [field.answer].concat(field.alt || []);

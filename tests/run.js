@@ -110,6 +110,8 @@ cases.forEach(([inp, exp]) => { const v = P.parseExpr(inp); if (Math.abs(v - exp
 if (!Number.isNaN(P.parseExpr('2+'))) fail('parseExpr', '"2+" debería ser inválido');
 if (!P.checkField({ answer: 1 / 3 }, '0,33').ok) fail('checkField', '0,33 debería aceptarse para 1/3');
 if (P.checkField({ answer: 100 }, '100,4').ok) fail('checkField', '100,4 no debería aceptarse para 100');
+if (!P.checkField({ answer: 3.385, tol: 0.011 }, '3.385').ok) fail('checkField', '3.385 debería aceptarse para 3,385');
+if (!P.checkField({ answer: 12500, tol: 0.5 }, '12.500').ok) fail('checkField', '12.500 debería aceptarse para 12500');
 if (!P.checkField({ answer: 1 / 3 }, '1/3').ok) fail('checkField', '1/3 exacto');
 
 // Normal: comprobación de la tabla

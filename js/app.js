@@ -687,8 +687,14 @@
   }
 
   document.addEventListener('keydown', (e) => { if (state.keyHandler && !e.ctrlKey && !e.metaKey && !e.altKey) state.keyHandler(e); });
-  window.addEventListener('hashchange', route);
+  function safeRoute() {
+    try { route(); } catch (e) {
+      console.error(e);
+      app.innerHTML = '<div class="page"><div class="card empty"><div class="em">⚠️</div><h2>Algo ha fallado al mostrar esta página</h2><p>Prueba a recargar la página o vuelve al inicio.</p><div class="btn-row" style="justify-content:center"><button class="btn primary" onclick="location.reload()">Recargar</button><a class="btn" href="#/">Ir al inicio</a></div></div></div>';
+    }
+  }
+  window.addEventListener('hashchange', safeRoute);
   applyTheme();
-  route();
+  safeRoute();
   P.app = { route, startSession, buildTopic, buildMixed, examsOf };
 })(window.PAU);
