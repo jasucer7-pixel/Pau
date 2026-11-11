@@ -5,7 +5,7 @@
   const th = (prompt, solution) => ({ kind: 'teoria', points: 1, prompt, solution });
 
   P.addSubject({
-    id: 'eco', name: 'Economía de la Empresa', short: 'Economía', icon: '€', color: '#d97706',
+    id: 'eco', name: 'Economía de la Empresa', short: 'Economía', icon: '€', color: '#9a3f1c',
     desc: 'Empresa y Diseño de Modelos de Negocio (EDMN). Teoría tipo test, preguntas de desarrollo y problemas numéricos.',
     exam: {
       duration: 90,

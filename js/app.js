@@ -29,7 +29,7 @@
     } catch (e) { /* noop */ }
   }
   function setColor(color) {
-    document.documentElement.style.setProperty('--c', color || '#5b5bd6');
+    document.documentElement.style.setProperty('--c', color || '#1f4f8f');
   }
   function view(html, color) {
     app.innerHTML = `<div class="page">${html}</div>`;
@@ -104,58 +104,55 @@
     const total = P.subjectOrder.reduce((a, sid) => a + pauItems(sid).length, 0);
     const nExams = P.subjectOrder.reduce((a, sid) => a + examsOf(sid).length, 0);
     const years = P.subjectOrder.flatMap((sid) => pauItems(sid).map((i) => i.y)).filter((y) => y < 2027);
-    const cards = P.subjectOrder.map((sid) => {
+    const y0 = Math.min(...years), y1 = Math.max(...years);
+    const cols = P.subjectOrder.map((sid) => {
       const s = P.subjects[sid];
-      const n = pauItems(sid).length;
-      return `<article class="subject-card" style="--c:${s.color}">
-        <a class="subject-top" href="#/s/${sid}">
-          <div class="subject-icon">${s.icon}</div>
-          <div><h3>${esc(s.name)}</h3><p>${esc(s.desc)}</p></div>
-        </a>
-        <nav class="subject-links">
-          <a href="#/s/${sid}/pau">${icon.grid}<span>Ejercicios PAU por tipos</span><b>${n}</b></a>
-          <a href="#/s/${sid}/examenes">${icon.file}<span>Exámenes completos</span><b>${examsOf(sid).length}</b></a>
-          <a href="#/s/${sid}/teoria">${icon.book}<span>Teoría</span><b>${P.allTopics(sid).length}</b></a>
-          <a href="#/s/${sid}/practicar">${icon.pen}<span>Practicar</span><b>∞</b></a>
-        </nav>
+      const items = pauItems(sid);
+      const top = pauTypes(sid).map((t) => ({ t, n: items.filter((i) => i.t.includes(t.id)).length })).sort((a, b) => b.n - a.n).slice(0, 5);
+      const last = lastExam(sid);
+      return `<article class="subj-col" style="--c:${s.color}">
+        <header>
+          <a class="subj-mark" href="#/s/${sid}" aria-hidden="true" tabindex="-1">${s.icon}</a>
+          <div><h2><a href="#/s/${sid}">${esc(s.name)}</a></h2><p>${esc(s.desc)}</p></div>
+        </header>
+        <ul class="subj-menu">
+          <li><a href="#/s/${sid}/pau"><span>Ejercicios PAU por tipo</span><b>${items.length}</b></a></li>
+          <li><a href="#/s/${sid}/examenes"><span>Exámenes completos</span><b>${examsOf(sid).length}</b></a></li>
+          <li><a href="#/s/${sid}/teoria"><span>Teoría</span><b>${P.allTopics(sid).length} temas</b></a></li>
+          <li><a href="#/s/${sid}/practicar"><span>Practicar</span><b>con corrección</b></a></li>
+          <li><a href="#/s/${sid}/formulario"><span>Formulario</span><b>imprimible</b></a></li>
+        </ul>
+        <h3 class="mini-h">Lo que más cae</h3>
+        <ol class="subj-top">${top.map(({ t, n }) => `<li><a href="#/s/${sid}/pau/${t.id}"><span>${esc(t.name)}</span><b>${n}</b></a></li>`).join('')}</ol>
+        ${last ? `<p class="subj-last"><span>Último examen</span><a href="#/s/${sid}/examen/${last.id}">${esc(examName(Object.assign({ sid }, last), false))}</a></p>` : ''}
       </article>`;
     }).join('');
     view(`
-      <section class="hero">
+      <section class="intro">
         <div>
           <p class="eyebrow">PAU · Comunidad de Madrid</p>
-          <h1>Todos los exámenes de la PAU, <span class="hl">ordenados por tipos</span></h1>
-          <p class="lead">${total} ejercicios oficiales de ${nExams} exámenes (${Math.min(...years)}–${Math.max(...years)}) con su solución oficial, clasificados por tipo de ejercicio. Además, teoría resumida y ejercicios ilimitados para practicar.</p>
-          <div class="hero-cta">
-            <a class="btn primary lg" href="#/s/${P.subjectOrder[0]}/pau">${icon.grid} Ver ejercicios PAU</a>
-            <a class="btn lg" href="#/s/${P.subjectOrder[0]}/examenes">${icon.file} Exámenes completos</a>
-          </div>
+          <h1>Los exámenes de la PAU, ordenados por tipo de ejercicio</h1>
+          <p class="lead">Cada examen oficial desde ${y0}, separado ejercicio a ejercicio y con su solución oficial. Practica un tipo concreto de problema o haz un examen entero con el tiempo real.</p>
         </div>
-        <div class="hero-stats">
-          <div class="stat"><div class="v">${total}</div><div class="l">ejercicios oficiales</div></div>
-          <div class="stat"><div class="v">${nExams}</div><div class="l">exámenes completos</div></div>
-          <div class="stat"><div class="v">${P.subjectOrder.length}</div><div class="l">asignaturas</div></div>
-          <div class="stat"><div class="v">${Object.keys(P.gens).length}</div><div class="l">generadores de ejercicios</div></div>
-        </div>
+        <dl class="facts">
+          <div><dt>Ejercicios</dt><dd>${total.toLocaleString('es-ES')}</dd></div>
+          <div><dt>Exámenes</dt><dd>${nExams}</dd></div>
+          <div><dt>Años</dt><dd>${y0}–${String(y1).slice(2)}</dd></div>
+        </dl>
       </section>
+      <section class="subjects-index" aria-label="Asignaturas">${cols}</section>
       <section class="section">
-        <div class="section-head"><h2>Asignaturas</h2></div>
-        <div class="grid subjects">${cards}</div>
+        <div class="section-head"><h2>Cómo sacarle partido</h2></div>
+        <ol class="howto">
+          <li><h3>Empieza por lo que más cae</h3><p>En «Ejercicios PAU por tipo» tienes todos los problemas de un mismo tipo seguidos. Intenta cada uno en papel antes de abrir la solución.</p></li>
+          <li><h3>Repasa la teoría que falle</h3><p>Cada tipo enlaza con su tema de teoría: fórmulas, métodos y ejemplos resueltos. El formulario se puede imprimir.</p></li>
+          <li><h3>Haz exámenes completos</h3><p>Cuando domines los tipos, haz un examen entero en modo examen: ${P.subjects[P.subjectOrder[0]].exam.duration} minutos y soluciones ocultas hasta terminar.</p></li>
+        </ol>
       </section>
-      <section class="section">
-        <div class="section-head"><h2>Qué hay en cada asignatura</h2></div>
-        <div class="steps four">
-          <div class="step"><div class="n">${icon.grid}</div><h3>Ejercicios PAU por tipos</h3><p>Todos los ejercicios de los exámenes oficiales agrupados por tipo (sistemas, integrales, VAN…), con su solución oficial.</p></div>
-          <div class="step"><div class="n">${icon.file}</div><h3>Exámenes completos</h3><p>Cada examen tal y como salió, para hacerlo entero con cronómetro y corregirlo después.</p></div>
-          <div class="step"><div class="n">${icon.book}</div><h3>Teoría</h3><p>Resumen de cada tema con fórmulas, ejemplos y trucos, y un formulario imprimible.</p></div>
-          <div class="step"><div class="n">${icon.pen}</div><h3>Practicar</h3><p>Ejercicios generados al momento con corrección automática y preguntas tipo test.</p></div>
-        </div>
-      </section>
-      <section class="section">
-        <div class="section-head"><h2>Próximamente</h2></div>
-        <div class="soon">${OTHER_SUBJECTS.map((n) => `<span class="chip">${esc(n)}</span>`).join('')}</div>
-      </section>
-      <p class="muted small">Fuente de los exámenes y soluciones: Universidad Complutense de Madrid (exámenes oficiales de las universidades públicas de la Comunidad de Madrid).</p>`);
+      <p class="soon-line"><b>Próximamente:</b> ${OTHER_SUBJECTS.map(esc).join(', ')}.</p>`, '#1f4f8f');
+  }
+  function lastExam(sid) {
+    return examsOf(sid).filter((e) => e.c !== 'modelo').sort((a, b) => b.y - a.y || (b.c === 'extraordinaria') - (a.c === 'extraordinaria') || a.v - b.v)[0];
   }
 
   // ======================= ASIGNATURA: cabecera y subnavegación =======================
@@ -171,7 +168,7 @@
       ${crumbs(cr.concat(extraCrumbs))}
       <header class="subj-head">
         <a class="subject-icon sm" href="#/s/${sid}">${s.icon}</a>
-        <div><p class="eyebrow">${esc(s.short)}</p><h1>${esc(s.name)}</h1></div>
+        <h1>${esc(s.name)}</h1>
       </header>
       <nav class="subnav" aria-label="Secciones de ${esc(s.short)}">${SECTIONS.map(([k, n]) => `<a href="#/s/${sid}${k ? '/' + k : ''}" class="${k === active ? 'active' : ''}">${n}</a>`).join('')}</nav>
       ${body}`, s.color);
@@ -182,7 +179,7 @@
     if (!s) return notFound();
     const items = pauItems(sid);
     const types = pauTypes(sid).map((t) => ({ t, n: items.filter((i) => i.t.includes(t.id)).length })).sort((a, b) => b.n - a.n).slice(0, 6);
-    const last = examsOf(sid).filter((e) => e.c !== 'modelo').sort((a, b) => b.y - a.y || (b.c === 'extraordinaria') - (a.c === 'extraordinaria') || a.v - b.v)[0];
+    const last = lastExam(sid);
     const topics = P.allTopics(sid);
     const gens = new Set(topics.flatMap((t) => t.gens || [])).size;
     subjectShell(sid, '', `
@@ -360,7 +357,7 @@
         $$('details.offsol').forEach((d) => { d.hidden = false; });
         finBtn.hidden = true; startBtn.hidden = true;
         $('#timer').textContent = 'Fin';
-        toast(auto ? '⏰ ¡Tiempo! Ya puedes ver las soluciones.' : 'Ya puedes ver las soluciones de cada ejercicio.');
+        toast(auto ? 'Se acabó el tiempo. Ya puedes ver las soluciones.' : 'Ya puedes ver las soluciones de cada ejercicio.');
       };
       startBtn.addEventListener('click', () => {
         start = Date.now(); startBtn.hidden = true; finBtn.hidden = false;
@@ -413,7 +410,7 @@
   function viewFormulario(sid) {
     const topics = P.allTopics(sid);
     subjectShell(sid, 'formulario', `
-      <div class="btn-row no-print" style="justify-content:space-between;align-items:center;margin-bottom:10px"><nav class="formulario-toc">${topics.map((t) => `<a class="chip c" href="#/s/${sid}/formulario" data-jump="f-${t.id}">${esc(t.name)}</a>`).join('')}</nav><button class="btn" onclick="window.print()">🖨️ Imprimir / PDF</button></div>
+      <div class="btn-row no-print" style="justify-content:space-between;align-items:center;margin-bottom:10px"><nav class="formulario-toc">${topics.map((t) => `<a class="chip c" href="#/s/${sid}/formulario" data-jump="f-${t.id}">${esc(t.name)}</a>`).join('')}</nav><button class="btn" onclick="window.print()">Imprimir / PDF</button></div>
       ${topics.map((t) => `<section class="formulario-topic theory" id="f-${t.id}"><h2>${esc(t.name)}</h2>${t.theory || ''}</section>`).join('')}`);
     $$('[data-jump]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); document.getElementById(a.dataset.jump).scrollIntoView({ behavior: 'smooth' }); }));
   }
@@ -573,13 +570,13 @@
         score = ok === q.fields.length ? 1 : ok > 0 && q.fields.length > 1 ? 0.5 : 0;
         if (score === 0.5) extra = ` (${ok} de ${q.fields.length} apartados)`;
       }
-      const head = score === 1 ? '✅ ¡Correcto!' : score > 0 ? `🟡 Casi${extra}` : giveup ? '📖 Solución' : '❌ No es correcto';
+      const head = score === 1 ? 'Correcto' : score > 0 ? `Casi${extra}` : giveup ? 'Solución' : 'No es correcto';
       showFeedback(score === 1 ? 'ok' : score > 0 || giveup ? 'neutral' : 'bad', head, score < 1);
       finish(score, true);
     }
     function reveal() {
-      showFeedback('neutral', '📖 Solución', true);
-      qa.innerHTML = `<span class="muted small">¿Cómo te ha salido?</span><div class="right"><button class="btn sm" data-act="self0">❌ Mal</button><button class="btn sm" data-act="self0.5">🟡 A medias</button><button class="btn sm primary" data-act="self1">✅ Bien</button></div>`;
+      showFeedback('neutral', 'Solución', true);
+      qa.innerHTML = `<span class="muted small">¿Cómo te ha salido?</span><div class="right"><button class="btn sm" data-act="self0">Mal</button><button class="btn sm" data-act="self0.5">A medias</button><button class="btn sm primary" data-act="self1">Bien</button></div>`;
       it.revealed = true;
     }
     function showFeedback(kind, head, open) {
@@ -629,7 +626,7 @@
     const score = ss.items.reduce((a, x) => a + (x.score || 0), 0);
     const p = total ? score / total : 0;
     const s = P.subjects[ss.subject];
-    const msg = p >= 0.9 ? '¡Espectacular! 🏆' : p >= 0.7 ? '¡Muy bien! 💪' : p >= 0.5 ? 'Vas por buen camino 👍' : 'Sigue practicando, ¡se aprende fallando! 📚';
+    const msg = p >= 0.9 ? 'Excelente' : p >= 0.7 ? 'Muy bien' : p >= 0.5 ? 'Vas por buen camino' : 'Hay que darle otra vuelta';
     view(`<div class="session summary"><div class="qcard">
       <p class="eyebrow">${esc(ss.title)}</p>
       <h2>${msg}</h2>
@@ -655,7 +652,7 @@
   }
 
   function notFound() {
-    view(`<div class="card empty"><div class="em">🧭</div><h2>Página no encontrada</h2><a class="btn primary" href="#/">Volver al inicio</a></div>`);
+    view(`<div class="card empty"><div class="em">404</div><h2>Página no encontrada</h2><a class="btn primary" href="#/">Volver al inicio</a></div>`);
   }
 
   // ======================= ROUTER =======================
@@ -690,7 +687,7 @@
   function safeRoute() {
     try { route(); } catch (e) {
       console.error(e);
-      app.innerHTML = '<div class="page"><div class="card empty"><div class="em">⚠️</div><h2>Algo ha fallado al mostrar esta página</h2><p>Prueba a recargar la página o vuelve al inicio.</p><div class="btn-row" style="justify-content:center"><button class="btn primary" onclick="location.reload()">Recargar</button><a class="btn" href="#/">Ir al inicio</a></div></div></div>';
+      app.innerHTML = '<div class="page"><div class="card empty"><h2>Algo ha fallado al mostrar esta página</h2><p>Prueba a recargar la página o vuelve al inicio.</p><div class="btn-row" style="justify-content:center"><button class="btn primary" onclick="location.reload()">Recargar</button><a class="btn" href="#/">Ir al inicio</a></div></div></div>';
     }
   }
   window.addEventListener('hashchange', safeRoute);

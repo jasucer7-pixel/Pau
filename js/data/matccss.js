@@ -4,7 +4,7 @@
   const T = P.T;
 
   P.addSubject({
-    id: 'matccss', name: 'Matemáticas Aplicadas a las CCSS II', short: 'Mates CCSS', icon: 'Σ', color: '#0d9488',
+    id: 'matccss', name: 'Matemáticas Aplicadas a las CCSS II', short: 'Mates CCSS', icon: 'Σ', color: '#2d6a4f',
     desc: 'Bachillerato de Ciencias Sociales. Álgebra, programación lineal, análisis, probabilidad e inferencia.',
     exam: {
       duration: 90,
