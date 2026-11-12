@@ -34,7 +34,7 @@
   var KEY = 'endavant-a2-v1';
   function defaults() {
     return { xp: 0, days: {}, act: { d: 0, k: {} }, srs: {}, newDay: { d: 0, n: 0 }, gram: {}, read: {}, listen: {}, dict: 0, write: {}, speak: {},
-      verbs: { ok: 0, total: 0 }, exams: [], set: { rate: 0.95, voice: '', theme: '', dir: 'es-ca', goal: 40, newPerDay: 10, autoSay: true } };
+      verbs: { ok: 0, total: 0 }, exams: [], utest: {}, vdone: {}, dictDone: false, pronDone: false, set: { rate: 0.95, voice: '', theme: '', dir: 'es-ca', goal: 40, newPerDay: 10, autoSay: true } };
   }
   var S = load();
   function load() {
@@ -101,38 +101,97 @@
   var sayable = function (s) { return s.replace(/ \/ /g, ', '); };
 
   // ---------- Veu (síntesi i reconeixement) ----------
+  var isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   var TTS = {
-    ok: 'speechSynthesis' in window, voices: [], token: 0,
-    load: function () { if (!this.ok) return; try { this.voices = speechSynthesis.getVoices().filter(function (v) { return /^ca([-_]|$)/i.test(v.lang); }); } catch (e) { this.voices = []; } },
-    voice: function () { var n = S.set.voice; return this.voices.filter(function (v) { return v.name === n; })[0] || this.voices[0] || null; },
+    ok: 'speechSynthesis' in window && typeof window.SpeechSynthesisUtterance === 'function',
+    all: [], voices: [], token: 0, lastCancel: 0, started: false, cur: null,
+    load: function () {
+      if (!this.ok) return;
+      try { this.all = speechSynthesis.getVoices() || []; } catch (e) { this.all = []; }
+      this.voices = this.all.filter(function (v) { return /^ca([-_]|$)/i.test(v.lang); });
+    },
+    // none: el navegador no té veu · ca: veu catalana · other: només altres idiomes · unknown: el navegador no en llista cap
+    status: function () { return !this.ok ? 'none' : this.voices.length ? 'ca' : this.all.length ? 'other' : 'unknown'; },
+    // Sense veu catalana, millor sentir-ho amb una veu castellana que no sentir res
+    fallback: function () {
+      var a = this.all;
+      return a.filter(function (v) { return /^es[-_]ES/i.test(v.lang); })[0] || a.filter(function (v) { return /^es/i.test(v.lang); })[0] || a.filter(function (v) { return v['default']; })[0] || a[0] || null;
+    },
+    voice: function () { var n = S.set.voice; return this.all.filter(function (v) { return v.name === n; })[0] || this.voices[0] || this.fallback(); },
+    // Chrome talla els textos llargs: es llegeixen frase a frase
+    chunks: function (t) {
+      var parts = String(t).replace(/\s+/g, ' ').trim().match(/[^.!?…:;]+[.!?…:;]*\s*/g) || [t], out = [], cur = '';
+      parts.forEach(function (p) { if ((cur + p).length > 160 && cur) { out.push(cur.trim()); cur = p; } else cur += p; });
+      if (cur.trim()) out.push(cur.trim());
+      return out;
+    },
     speak: function (text, o) {
-      o = o || {}; var self = this;
+      o = o || {}; var self = this, tok = this.token;
       return new Promise(function (res) {
         if (!self.ok || !text) return res();
-        var u = new SpeechSynthesisUtterance(text), v = o.voice || self.voice(), done = false;
-        var fin = function () { if (!done) { done = true; res(); } };
-        u.lang = 'ca-ES'; if (v) u.voice = v; u.rate = (o.rate || S.set.rate); u.pitch = o.pitch || 1;
-        u.onend = fin; u.onerror = fin;
-        setTimeout(fin, 2500 + text.length * 120 / (u.rate || 1));
-        try { speechSynthesis.speak(u); } catch (e) { fin(); }
+        var parts = self.chunks(text), i = 0, v = o.voice || self.voice();
+        var one = function () {
+          if (tok !== self.token || i >= parts.length) return res();
+          var u = new SpeechSynthesisUtterance(parts[i++]), done = false, safe;
+          var fin = function () { if (done) return; done = true; clearTimeout(safe); setTimeout(one, 0); };
+          if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'ca-ES';
+          u.rate = o.rate || S.set.rate; u.pitch = o.pitch || 1;
+          u.onstart = function () { self.started = true; };
+          u.onend = fin; u.onerror = fin;
+          safe = setTimeout(fin, 4000 + u.text.length * 110 / u.rate);
+          self.cur = u; // Safari esborra l'enunciat si no se'n guarda cap referència
+          try { speechSynthesis.resume(); speechSynthesis.speak(u); } catch (e) { fin(); }
+        };
+        // Chrome ignora un speak() fet just després de cancel(); a iOS s'ha de fer dins del mateix toc
+        if (!isIOS && Date.now() - self.lastCancel < 160) setTimeout(one, 160); else one();
       });
     },
-    stop: function () { this.token++; if (this.ok) try { speechSynthesis.cancel(); } catch (e) {} },
-    // Diàlegs: veus o tons diferents per a cada personatge
+    stop: function () {
+      this.token++;
+      if (!this.ok) return;
+      try { if (speechSynthesis.speaking || speechSynthesis.pending) { speechSynthesis.cancel(); this.lastCancel = Date.now(); } } catch (e) {}
+    },
+    // Reprodueix i, si en 2,5 s no ha començat a sonar, explica què pot passar
+    play: function (text, o) {
+      var self = this;
+      if (!this.ok) { toast('Este navegador no puede leer en voz alta. Abre la web en Chrome o Safari.'); return Promise.resolve(); }
+      this.stop(); this.started = false;
+      var tok = this.token;
+      setTimeout(function () { if (!self.started && tok === self.token) toast(self.status() === 'ca' ? '¿No suena? Sube el volumen y quita el modo silencio.' : '¿No suena? Mira Ajustos → Àudio.'); }, 2500);
+      return this.speak(text, o);
+    },
+    // Diàlegs: una veu diferent per personatge si n'hi ha; si no, canvia el to
     dialog: function (lines, rate, onLine) {
-      var self = this, tok = ++this.token, vs = this.voices;
-      var cfg = { A: { voice: vs[0], pitch: 1 }, B: { voice: vs[1] || vs[0], pitch: vs[1] ? 1 : 0.72 }, C: { voice: vs[2] || vs[0], pitch: vs[2] ? 1 : 1.3 } };
+      this.stop(); this.started = false;
+      var self = this, tok = this.token, vs = this.voices.length ? this.voices : [this.voice()];
+      var cfg = { A: { voice: vs[0], pitch: 1 }, B: { voice: vs[1] || vs[0], pitch: vs[1] ? 1 : 0.75 }, C: { voice: vs[2] || vs[0], pitch: vs[2] ? 1 : 1.25 } };
       var i = 0;
+      if (!this.ok) toast('Este navegador no puede leer en voz alta. Abre la web en Chrome o Safari.');
+      else setTimeout(function () { if (!self.started && tok === self.token) toast('¿No suena? Mira Ajustos → Àudio.'); }, 3000);
       return new Promise(function (res) {
         (function next() {
           if (tok !== self.token || i >= lines.length) { if (onLine) onLine(-1); return res(); }
           var l = lines[i], c = cfg[l[0]] || cfg.A; if (onLine) onLine(i);
-          self.speak(l[1], { voice: c.voice, pitch: c.pitch, rate: rate }).then(function () { i++; setTimeout(next, 380); });
+          self.speak(l[1], { voice: c.voice, pitch: c.pitch, rate: rate }).then(function () { i++; if (tok === self.token) setTimeout(next, 380); else next(); });
         })();
       });
     }
   };
-  if (TTS.ok) { TTS.load(); try { speechSynthesis.addEventListener('voiceschanged', function () { TTS.load(); if (/^#?(inici|ajustos)?$/.test(location.hash)) route(); }); } catch (e) {} }
+  function audioNote() {
+    var s = TTS.status(), msg = {
+      none: '<b>Este navegador no puede reproducir voz.</b> Si has abierto la web desde otra app (por ejemplo, Claude en Android), ábrela en Chrome o Safari.',
+      other: '<b>No hay voz catalana en este dispositivo.</b> Se usará una voz en castellano, con pronunciación aproximada. Para oír catalán de verdad, instálala: <a href="#ajustos">cómo hacerlo</a>.',
+      unknown: '<b>¿No se oye nada?</b> Sube el volumen, quita el modo silencio y comprueba la voz en <a href="#ajustos">Ajustos</a>.'
+    }[s];
+    return '<div class="audio-note"' + (msg ? '' : ' hidden') + '><div class="note warn">' + (msg || '') + '</div></div>';
+  }
+  function refreshAudioNotes() { $$('.audio-note').forEach(function (n) { var x = document.createElement('div'); x.innerHTML = audioNote(); n.parentNode.replaceChild(x.firstChild, n); }); }
+  if (TTS.ok) {
+    TTS.load();
+    var onVoices = function () { TTS.load(); refreshAudioNotes(); };
+    try { speechSynthesis.addEventListener('voiceschanged', onVoices); } catch (e) { speechSynthesis.onvoiceschanged = onVoices; }
+    setTimeout(onVoices, 1200);
+  }
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   function recognize(continuous, onText) {
     return new Promise(function (res, rej) {
@@ -153,7 +212,7 @@
 
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-say]');
-    if (b) { e.preventDefault(); TTS.stop(); TTS.speak(b.getAttribute('data-say'), b.hasAttribute('data-slow') ? { rate: 0.7 } : {}); }
+    if (b) { e.preventDefault(); TTS.play(b.getAttribute('data-say'), b.hasAttribute('data-slow') ? { rate: 0.7 } : {}); }
   });
   var sayBtn = function (t, label) { return '<button type="button" class="say" data-say="' + esc(sayable(t)) + '" aria-label="' + (label || 'Escolta') + '" title="Escolta">' + IC.spk + '</button>'; };
 
@@ -294,71 +353,170 @@
 
   // ---------- Router ----------
   var ROUTES = {};
-  var GROUP = { inici: 'inici', paraules: 'paraules', repas: 'paraules', gramatica: 'gramatica', verbs: 'gramatica', practica: 'practica', llegir: 'practica',
-    escoltar: 'practica', dictat: 'practica', escriure: 'practica', parlar: 'practica', pronuncia: 'practica', examen: 'examen', ajustos: 'ajustos' };
+  var GROUP = { inici: 'inici', curs: 'curs', unitat: 'curs', prova: 'curs', repas: 'repas', examen: 'examen', ajustos: 'ajustos' };
   function route() {
     TTS.stop(); clearTimers(); keyHandler = null;
     if (recognize.current) try { recognize.current.abort(); } catch (e) {}
     var h = decodeURIComponent(location.hash.replace(/^#\/?/, '')), k = h.indexOf('-');
     var sec = (k < 0 ? h : h.slice(0, k)) || 'inici', id = k < 0 ? '' : h.slice(k + 1);
-    if (!ROUTES[sec]) sec = 'inici';
-    $$('[data-nav]').forEach(function (a) { a.classList.toggle('on', a.getAttribute('data-nav') === GROUP[sec]); });
+    if (!ROUTES[sec]) { sec = 'inici'; id = ''; h = ''; }
     ROUTES[sec](id);
+    var inUnit = unitChrome(h);
+    var grp = inUnit ? 'curs' : GROUP[sec] || 'biblioteca';
+    $$('[data-nav]').forEach(function (a) { a.classList.toggle('on', a.getAttribute('data-nav') === grp); });
     topStats();
     window.scrollTo(0, 0);
   }
   window.addEventListener('hashchange', route);
 
-  // ========== INICI ==========
+  // ========== CURS ==========
+  var findId = function (list, id) { return list.filter(function (x) { return x.id === id; })[0]; };
+  var TENSE_NAME = {}; CA.verbs.tenses.forEach(function (t) { TENSE_NAME[t.id] = t.name.toLowerCase(); });
+  function stepInfo(st) {
+    var k = st.split(':'), kind = k[0], id = k[1] || '', x;
+    switch (kind) {
+      case 'v': {
+        x = findId(CA.vocab, id); var ws = WORDS.filter(function (w) { return w.theme === id; }), seen = ws.filter(function (w) { return S.srs[w.id]; }).length;
+        return { hash: 'paraules-' + id, label: 'Paraules', ic: IC.cards, title: x.title, done: seen >= ws.length * 0.8, meta: seen + ' de ' + ws.length + ' estudiades' };
+      }
+      case 'g': x = findId(CA.grammar, id); return { hash: 'gramatica-' + id, label: 'Gramàtica', ic: IC.book, title: x.title, done: (S.gram[id] || 0) >= 80, meta: S.gram[id] != null ? 'Millor resultat: ' + S.gram[id] + ' %' : x.es };
+      case 'verbs': {
+        var ts = id.split('+');
+        return { hash: 'verbs-entrena-' + ts.join('-'), label: 'Verbs', ic: IC.verb, title: 'Conjuga en ' + ts.map(function (t) { return TENSE_NAME[t]; }).join(', '), done: !!S.vdone[id], meta: '12 formes, cal un 70 %' };
+      }
+      case 'r': x = findId(CA.reading, id); return { hash: 'llegir-' + id, label: 'Lectura', ic: IC.read, title: x.title, done: (S.read[id] || 0) >= 60, meta: S.read[id] != null ? S.read[id] + ' %' : x.kind };
+      case 'l': x = findId(CA.listening, id); return { hash: 'escoltar-' + id, label: 'Comprensió oral', ic: IC.ear, title: x.title, done: (S.listen[id] || 0) >= 60, meta: S.listen[id] != null ? S.listen[id] + ' %' : x.qs.length + ' preguntes' };
+      case 'w': x = findId(CA.writing, id); return { hash: 'escriure-' + id, label: 'Expressió escrita', ic: IC.pen, title: x.title, done: !!(S.write[id] && S.write[id].done), meta: x.min + '–' + x.max + ' paraules' };
+      case 's': x = findId(CA.speaking, id); return { hash: 'parlar-' + id, label: 'Expressió oral', ic: IC.mic, title: x.title, done: !!S.speak[id], meta: 'Monòleg de ' + Math.round(x.secs / 60 * 10) / 10 + ' min' };
+      case 'rp': x = findId(CA.roleplay, id); return { hash: 'parlar-rol-' + id, label: 'Joc de rol', ic: IC.mic, title: x.title, done: !!S.speak['rol-' + id], meta: x.lines.length + ' intervencions' };
+      case 'dictat': return { hash: 'dictat', label: 'Dictat', ic: IC.type, title: 'Dictat de 8 frases', done: !!S.dictDone, meta: 'Escolta i escriu' };
+      case 'pronuncia': return { hash: 'pronuncia', label: 'Pronunciació', ic: IC.wave, title: 'Els sons del català', done: !!S.pronDone, meta: CA.pronunciation.length + ' grups de sons' };
+      case 'examen': return { hash: 'examen', label: 'Simulacre', ic: IC.check, title: 'Simulacre d\'examen A2', done: S.exams.length > 0, meta: 'Les quatre parts' };
+    }
+  }
+  function unitSteps(u) {
+    var st = u.steps.map(stepInfo), t = S.utest[u.id];
+    st.push({ hash: 'prova-' + u.id, label: 'Prova', ic: IC.check, title: 'Prova de la unitat', done: (t || 0) >= 70, meta: t != null ? 'Millor resultat: ' + t + ' %' : '10 preguntes, cal un 70 %' });
+    return st;
+  }
+  function unitPct(u) { var st = unitSteps(u); return pct(st.filter(function (s) { return s.done; }).length, st.length); }
+  function unitOf(hash) {
+    for (var k = 0; k < CA.course.length; k++) {
+      var st = unitSteps(CA.course[k]);
+      for (var i = 0; i < st.length; i++) if (st[i].hash === hash) return { u: CA.course[k], n: k + 1, steps: st, i: i };
+    }
+    return null;
+  }
+  function currentUnit() { return CA.course.filter(function (u) { return unitPct(u) < 100; })[0] || CA.course[CA.course.length - 1]; }
+  function nextStep(u) { var st = unitSteps(u); return st.filter(function (s) { return !s.done; })[0] || st[0]; }
+  function stepRow(s, k) {
+    return '<a href="#' + s.hash + '" class="' + (s.done ? 'done' : '') + '"><span class="ic">' + (s.done ? IC.check : s.ic) + '</span><span class="grow"><span class="eyebrow">' + (k != null ? (k + 1) + ' · ' : '') + s.label + '</span><b>' + esc(s.title) + '</b><span>' + esc(s.meta) + '</span></span>' + CHEV + '</a>';
+  }
+  var CHEV = '<svg class="chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>';
+  // Navegació dins d'una unitat: molla de pa a dalt i "pas següent" a baix
+  function unitChrome(hash) {
+    var m = unitOf(hash); if (!m) return false;
+    var prev = m.steps[m.i - 1], next = m.steps[m.i + 1];
+    var back = $('.head .back', app); if (back) back.parentNode.removeChild(back);
+    app.insertAdjacentHTML('afterbegin', '<a class="crumb" href="#unitat-' + m.u.id + '">' + IC.back + '<span>Unitat ' + m.n + ' · ' + esc(m.u.title) + '</span><span class="muted">pas ' + (m.i + 1) + ' de ' + m.steps.length + '</span></a>');
+    app.insertAdjacentHTML('beforeend', '<nav class="stepnav" aria-label="Passos de la unitat">' +
+      (prev ? '<a class="btn ghost" href="#' + prev.hash + '">' + IC.back + 'Anterior</a>' : '<a class="btn ghost" href="#unitat-' + m.u.id + '">' + IC.back + 'Unitat</a>') +
+      (next ? '<a class="btn pri" href="#' + next.hash + '">Següent: ' + esc(next.label.toLowerCase()) + CHEV + '</a>' : '<a class="btn pri" href="#unitat-' + m.u.id + '">Tornar a la unitat' + CHEV + '</a>') + '</nav>');
+    return true;
+  }
+
   ROUTES.inici = function () {
     var h = new Date().getHours(), greet = h < 14 ? 'Bon dia!' : h < 21 ? 'Bona tarda!' : 'Bona nit!';
+    var u = currentUnit(), n = CA.course.indexOf(u) + 1, ns = nextStep(u), up = unitPct(u);
     var due = dueWords().length, nl = Math.min(newLeft(), newWords(99).length);
-    var nextG = CA.grammar.filter(function (g) { return (S.gram[g.id] || 0) < 80; })[0];
-    var kinds = [
-      { k: 'read', list: CA.reading, store: S.read, href: 'llegir', name: 'Comprensió lectora', ic: IC.read },
-      { k: 'listen', list: CA.listening, store: S.listen, href: 'escoltar', name: 'Comprensió oral', ic: IC.ear },
-      { k: 'dict', href: 'dictat', name: 'Dictat de 8 frases', ic: IC.type },
-      { k: 'write', list: CA.writing, store: S.write, href: 'escriure', name: 'Expressió escrita', ic: IC.pen },
-      { k: 'speak', list: CA.speaking, store: S.speak, href: 'parlar', name: 'Expressió oral', ic: IC.mic }
-    ];
-    var sk = kinds[today() % kinds.length], skItem = sk.list ? (sk.list.filter(function (x) { var v = sk.store[x.id]; return !(v && (v === true || v.done || v >= 80)); })[0] || sk.list[0]) : null;
-    var plan = [
-      { done: did('cards'), href: '#repas', ic: IC.cards, t: due + nl ? 'Repassa ' + (due + nl) + ' paraules' : 'Paraules al dia', s: due + ' per repassar · ' + nl + ' noves' },
-      { done: did('gram'), href: '#gramatica-' + (nextG || CA.grammar[0]).id, ic: IC.book, t: (nextG || CA.grammar[0]).title, s: 'Gramàtica · ' + (nextG || CA.grammar[0]).es },
-      { done: did(sk.k), href: '#' + sk.href + (skItem ? '-' + skItem.id : ''), ic: sk.ic, t: skItem ? skItem.title : sk.name, s: sk.name },
-      { done: did('verbs'), href: '#verbs-entrena', ic: IC.verb, t: 'Conjuga 12 formes verbals', s: 'Present, passat, perfet i futur' }
-    ];
-    var nGram = CA.grammar.filter(function (g) { return (S.gram[g.id] || 0) >= 80; }).length;
-    var cnt = function (list, store) { return list.filter(function (x) { var v = store[x.id]; return v && (v === true || v.done || v >= 60); }).length; };
-    var nLearn = WORDS.filter(learned).length;
-    var skills = [
-      ['Vocabulari', nLearn, WORDS.length], ['Gramàtica', nGram, CA.grammar.length],
-      ['Comprensió lectora', cnt(CA.reading, S.read), CA.reading.length], ['Comprensió oral', cnt(CA.listening, S.listen), CA.listening.length],
-      ['Expressió escrita', cnt(CA.writing, S.write), CA.writing.length], ['Expressió oral', cnt(CA.speaking, S.speak), CA.speaking.length]
-    ];
     var p = Math.min(100, pct(xpToday(), S.set.goal));
-    var noVoice = TTS.ok && !TTS.voices.length;
-    app.innerHTML = '<div class="stack" style="gap:22px">' +
-      '<div class="hero"><div class="head"><span class="greet">' + greet + '</span><h1>Avui toca català.</h1><p class="muted">Una mica cada dia: paraules, gramàtica i una destresa de l\'examen A2.</p></div>' +
+    app.innerHTML = '<div class="stack" style="gap:20px">' +
+      '<div class="hero"><div class="head"><span class="greet">' + greet + '</span><h1>Avui toca català.</h1><p class="muted">Segueix el curs pas a pas i repassa les paraules cada dia.</p></div>' +
       '<div class="ring" style="--p:' + p + '" title="Objectiu diari"><div><b class="num">' + xpToday() + '</b><span>de ' + S.set.goal + ' XP</span></div></div></div>' +
-      '<div class="stats"><div class="stat"><b>' + streak() + '</b><span>dies seguits</span></div><div class="stat"><b>' + nLearn + '</b><span>paraules apreses</span></div><div class="stat"><b>' + S.xp + '</b><span>XP en total</span></div></div>' +
-      (noVoice ? '<div class="note warn">No s\'ha trobat cap veu catalana en aquest dispositiu. Els àudios poden sonar amb accent castellà o no sonar. <a href="#ajustos">Com instal·lar-la</a>.</div>' : '') +
-      '<div class="two"><div class="panel"><div class="row" style="justify-content:space-between"><h2>Pla d\'avui</h2><span class="pill">' + plan.filter(function (x) { return x.done; }).length + ' / 4</span></div><div class="plan">' +
-      plan.map(function (x) { return '<a href="' + x.href + '" class="' + (x.done ? 'done' : '') + '"><span class="ic">' + (x.done ? IC.check : x.ic) + '</span><span class="grow"><b>' + esc(x.t) + '</b><span>' + esc(x.s) + '</span></span>' + IC.back.replace('M15 18l-6-6 6-6', 'M9 18l6-6-6-6') + '</a>'; }).join('') +
+      audioNote() +
+      '<div class="two">' +
+      '<div class="panel stack" style="gap:12px"><div class="row" style="justify-content:space-between"><span class="eyebrow">Continua el curs</span><span class="muted small num">' + up + ' %</span></div>' +
+      '<div><h2>Unitat ' + n + ' · ' + esc(u.title) + '</h2><p class="muted small" style="margin-top:4px">' + esc(u.goal) + '</p></div>' + bar(up) +
+      '<div class="plan">' + stepRow(ns) + '</div><div class="row"><a class="btn pri" href="#' + ns.hash + '">Continua</a><a class="btn ghost" href="#unitat-' + u.id + '">Veure la unitat</a></div></div>' +
+      '<div class="panel stack" style="gap:12px"><span class="eyebrow">Repàs de paraules</span><div><b class="big num" style="font-size:2.4rem">' + (due + nl) + '</b><p class="muted small">' + due + ' per repassar · ' + nl + ' noves avui</p></div>' +
+      '<p class="small muted">Cada paraula torna just quan estàs a punt d\'oblidar-la. Cinc minuts al dia són suficients.</p>' +
+      '<div class="row"><a class="btn ' + (due + nl ? 'pri' : '') + '" href="#repas">' + IC.cards + (due + nl ? 'Repassa ara' : 'Tot al dia') + '</a></div></div></div>' +
+      '<div class="stats"><div class="stat"><b>' + streak() + '</b><span>dies seguits</span></div><div class="stat"><b>' + WORDS.filter(learned).length + '</b><span>paraules apreses</span></div><div class="stat"><b>' + CA.course.filter(function (x) { return unitPct(x) === 100; }).length + ' / ' + CA.course.length + '</b><span>unitats acabades</span></div></div>' +
+      '<div class="panel"><div class="row" style="justify-content:space-between;margin-bottom:6px"><h2>El curs</h2><a class="small" href="#curs">Totes les unitats</a></div><div class="units">' +
+      CA.course.map(function (x, k) { var q = unitPct(x); return '<a href="#unitat-' + x.id + '" class="unit-row' + (x === u ? ' cur' : '') + '"><span class="unum' + (q === 100 ? ' ok' : '') + '">' + (q === 100 ? IC.check : k + 1) + '</span><span class="grow"><b>' + esc(x.title) + '</b>' + bar(q) + '</span><span class="muted small num">' + q + ' %</span></a>'; }).join('') +
       '</div></div>' +
-      '<div class="stack"><div class="panel"><span class="eyebrow">Consell del dia</span><p style="margin-top:8px">' + esc(CA.tips[today() % CA.tips.length]) + '</p></div>' +
-      '<div class="panel"><span class="eyebrow">L\'examen A2</span><p style="margin-top:8px" class="small">L\'examen avalua quatre destreses: <b>comprensió lectora</b>, <b>comprensió oral</b>, <b>expressió escrita</b> i <b>expressió oral</b>. Fes un simulacre per veure com vas.</p><div class="row" style="margin-top:12px"><a class="btn sm pri" href="#examen">Fes un simulacre</a></div></div></div></div>' +
-      '<div class="panel"><h2 style="margin-bottom:16px">El teu progrés</h2><div class="skills">' +
-      skills.map(function (s) { return '<div class="skill"><div class="row"><span>' + s[0] + '</span><span class="muted num">' + s[1] + ' / ' + s[2] + '</span></div>' + bar(pct(s[1], s[2])) + '</div>'; }).join('') +
-      '</div></div></div>';
+      '<div class="panel"><span class="eyebrow">Consell del dia</span><p style="margin-top:8px">' + esc(CA.tips[today() % CA.tips.length]) + '</p></div></div>';
   };
+
+  ROUTES.curs = function () {
+    var cur = currentUnit();
+    app.innerHTML = '<div class="stack">' + head('El curs', 'Vuit unitats ordenades de més fàcil a més difícil. Cada unitat combina paraules, gramàtica i les destreses de l\'examen, i acaba amb una prova.') +
+      '<div class="stack" style="gap:12px">' + CA.course.map(function (u, k) {
+        var q = unitPct(u), st = unitSteps(u), done = st.filter(function (s) { return s.done; }).length;
+        return '<a class="unit-card' + (u === cur ? ' cur' : '') + '" href="#unitat-' + u.id + '"><span class="unum big' + (q === 100 ? ' ok' : '') + '">' + (q === 100 ? IC.check : k + 1) + '</span>' +
+          '<span class="grow"><span class="eyebrow">Unitat ' + (k + 1) + (u === cur ? ' · on ets ara' : '') + '</span><b class="t">' + esc(u.title) + '</b><span class="s">' + esc(u.goal) + '</span>' +
+          '<span class="row" style="gap:10px;margin-top:6px">' + bar(q) + '<span class="muted small num" style="white-space:nowrap">' + done + ' / ' + st.length + ' passos</span></span></span></a>';
+      }).join('') + '</div></div>';
+  };
+
+  ROUTES.unitat = function (id) {
+    var u = findId(CA.course, id); if (!u) { location.hash = 'curs'; return; }
+    var k = CA.course.indexOf(u), st = unitSteps(u), q = unitPct(u), ns = nextStep(u), nx = CA.course[k + 1];
+    app.innerHTML = '<div class="stack">' + head('<span class="eyebrow" style="display:block;margin-bottom:8px">Unitat ' + (k + 1) + ' de ' + CA.course.length + '</span>' + esc(u.title), esc(u.goal), ['curs', 'El curs']) +
+      '<div class="panel stack" style="gap:10px"><div class="row" style="justify-content:space-between"><b>' + st.filter(function (s) { return s.done; }).length + ' de ' + st.length + ' passos fets</b><span class="muted small num">' + q + ' %</span></div>' + bar(q) +
+      '<div class="row">' + (q < 100 ? '<a class="btn pri" href="#' + ns.hash + '">' + (q ? 'Continua' : 'Comença') + ': ' + esc(ns.label.toLowerCase()) + '</a>' : (nx ? '<a class="btn pri" href="#unitat-' + nx.id + '">Unitat següent</a>' : '<a class="btn pri" href="#examen">Fes un simulacre</a>')) + '</div></div>' +
+      '<div class="panel"><div class="plan steps">' + st.map(stepRow).join('') + '</div></div>' +
+      '<p class="muted small">Pots fer els passos en qualsevol ordre. Un pas es marca com a fet quan el superes: paraules estudiades, gramàtica amb un 80 %, lectures i audicions amb un 60 %.</p></div>';
+  };
+
+  ROUTES.prova = function (id) {
+    var u = findId(CA.course, id); if (!u) { location.hash = 'curs'; return; }
+    var k = CA.course.indexOf(u);
+    app.innerHTML = '<div class="stack">' + head('Prova de la unitat ' + (k + 1), esc(u.title) + ' · 10 preguntes de gramàtica i vocabulari. Per superar-la cal un 70 %.', ['unitat-' + u.id, 'Unitat ' + (k + 1)]) +
+      '<div class="panel" id="quiz"></div></div>';
+    function start() {
+      var gs = u.steps.filter(function (s) { return s.indexOf('g:') === 0; }).map(function (s) { return findId(CA.grammar, s.slice(2)); });
+      var vs = u.steps.filter(function (s) { return s.indexOf('v:') === 0; }).map(function (s) { return s.slice(2); });
+      var pool = WORDS.filter(function (w) { return vs.indexOf(w.theme) >= 0; });
+      var nv = pool.length ? 4 : 0;
+      var gItems = sample(gs.reduce(function (a, g) { return a.concat(g.ex); }, []), 10 - nv).map(gramItem);
+      var vItems = sample(pool, nv).map(function (w, j) { return mcItem(w, pool.filter(function (x) { return x.theme === w.theme; }), j % 2 === 0); });
+      runQuiz($('#quiz'), shuffle(gItems.concat(vItems)), {
+        onAnswer: function (it, r) { if (it.w) gradeWord(it.w.id, r === 'ok' ? 2 : 0); },
+        onFinish: function (p) { S.utest[u.id] = Math.max(S.utest[u.id] || 0, p); addXP(p >= 70 ? 15 : 5, 'test'); },
+        nextHref: CA.course[k + 1] ? ['#unitat-' + CA.course[k + 1].id, 'Unitat següent'] : ['#examen', 'Simulacre'],
+        again: start
+      });
+    }
+    start();
+  };
+
+  ROUTES.biblioteca = function () {
+    var c = function (list, store) { return list.filter(function (x) { var v = store[x.id]; return v && (v === true || v.done || v >= 60); }).length; };
+    var tile = function (t) { return '<a class="tile" href="#' + t[0] + '"><span class="plan"><span class="ic">' + t[1] + '</span></span><span class="t">' + t[2] + '</span><span class="s">' + t[3] + '</span><span class="foot"><span class="pill">' + t[4] + '</span></span></a>'; };
+    app.innerHTML = '<div class="stack">' + head('Biblioteca', 'Tot el contingut del curs, ordenat per tipus. Fes-la servir per repassar un tema concret.') +
+      '<h2>Coneixements</h2><div class="grid">' + [
+        ['paraules', IC.cards, 'Paraules', 'Vocabulari per temes amb targetes, test i escriptura.', CA.vocab.length + ' temes'],
+        ['gramatica', IC.book, 'Gramàtica', 'Explicacions curtes en castellà i exercicis.', CA.grammar.length + ' unitats'],
+        ['verbs', IC.verb, 'Verbs', 'Taules de conjugació i entrenament.', CA.verbs.list.length + ' verbs']
+      ].map(tile).join('') + '</div>' +
+      '<h2>Destreses</h2><div class="grid">' + [
+        ['llegir', IC.read, 'Comprensió lectora', 'Correus, anuncis, avisos i menús amb preguntes.', c(CA.reading, S.read) + ' / ' + CA.reading.length],
+        ['escoltar', IC.ear, 'Comprensió oral', 'Diàlegs de la vida quotidiana.', c(CA.listening, S.listen) + ' / ' + CA.listening.length],
+        ['dictat', IC.type, 'Dictat', 'Escolta i escriu. Correcció paraula per paraula.', S.dict + ' frases fetes'],
+        ['escriure', IC.pen, 'Expressió escrita', 'Tasques tipus examen amb model i detector de castellanismes.', c(CA.writing, S.write) + ' / ' + CA.writing.length],
+        ['parlar', IC.mic, 'Expressió oral', 'Monòlegs amb cronòmetre i jocs de rol.', c(CA.speaking, S.speak) + ' / ' + CA.speaking.length],
+        ['pronuncia', IC.wave, 'Pronunciació', 'Vocal neutra, s sonora, l·l, x i tx…', CA.pronunciation.length + ' grups']
+      ].map(tile).join('') + '</div></div>';
+  };
+  ROUTES.practica = ROUTES.biblioteca;
 
   // ========== PARAULES ==========
   ROUTES.paraules = function (id) {
     var theme = CA.vocab.filter(function (t) { return t.id === id; })[0];
     if (!theme) {
       var due = dueWords().length;
-      app.innerHTML = '<div class="stack">' + head('Paraules', 'Unes ' + Math.round(WORDS.length / 10) * 10 + ' paraules i expressions del nivell A2, per temes. El repàs espaiat et torna a preguntar cada paraula just quan l\'estàs a punt d\'oblidar.') +
+      app.innerHTML = '<div class="stack">' + head('Paraules', 'Unes ' + Math.round(WORDS.length / 10) * 10 + ' paraules i expressions del nivell A2, per temes. El repàs espaiat et torna a preguntar cada paraula just quan l\'estàs a punt d\'oblidar.', ['biblioteca', 'Biblioteca']) +
         '<div class="panel row"><div class="grow" style="flex:1;min-width:200px"><b>Repàs d\'avui</b><div class="muted small">' + due + ' per repassar · ' + Math.min(newLeft(), newWords(99).length) + ' noves disponibles</div></div><a class="btn pri" href="#repas">' + IC.cards + 'Comença el repàs</a></div>' +
         '<div class="grid">' + CA.vocab.map(function (t) {
           var ws = WORDS.filter(function (w) { return w.theme === t.id; }), l = ws.filter(learned).length;
@@ -367,7 +525,7 @@
       return;
     }
     var ws = WORDS.filter(function (w) { return w.theme === theme.id; });
-    var mode = 'llista';
+    var mode = ws.filter(function (w) { return S.srs[w.id]; }).length >= ws.length * 0.8 ? 'llista' : 'targetes';
     app.innerHTML = '<div class="stack">' + head(esc(theme.title), esc(theme.es) + ' · ' + ws.length + ' paraules', ['paraules', 'Tots els temes']) +
       '<div class="tabs" role="tablist"><button data-m="llista" class="on">Llista</button><button data-m="targetes">Targetes</button><button data-m="test">Test</button><button data-m="escriu">Escriu</button></div><div id="pane"></div></div>';
     var pane = $('#pane');
@@ -440,7 +598,7 @@
 
   ROUTES.repas = function () {
     var due = dueWords().slice(0, 40), nw = newWords(newLeft());
-    app.innerHTML = '<div class="stack">' + head('Repàs de paraules', due.length + ' per repassar · ' + nw.length + ' noves', ['paraules', 'Paraules']) +
+    app.innerHTML = '<div class="stack">' + head('Repàs de paraules', due.length + ' per repassar · ' + nw.length + ' noves. Cinc minuts al dia són suficients.') +
       '<div class="row"><span class="muted small">Direcció:</span><div class="tabs"><button data-d="es-ca">Castellà → català</button><button data-d="ca-es">Català → castellà</button></div></div><div id="pane"></div></div>';
     $$('[data-d]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-d') === S.set.dir); b.onclick = function () { S.set.dir = b.getAttribute('data-d'); save(); ROUTES.repas(); }; });
     var pane = $('#pane');
@@ -464,7 +622,7 @@
   ROUTES.gramatica = function (id) {
     var u = CA.grammar.filter(function (g) { return g.id === id; })[0];
     if (!u) {
-      app.innerHTML = '<div class="stack">' + head('Gramàtica', 'Explicacions curtes en castellà i exercicis amb correcció. Una unitat es considera superada amb un 80 %.') +
+      app.innerHTML = '<div class="stack">' + head('Gramàtica', 'Explicacions curtes en castellà i exercicis amb correcció. Una unitat es considera superada amb un 80 %.', ['biblioteca', 'Biblioteca']) +
         '<a class="panel row" href="#verbs" style="text-decoration:none;color:inherit"><span class="plan"><span class="ic">' + IC.verb + '</span></span><div style="flex:1;min-width:0"><b>Conjugador i entrenament de verbs</b><div class="muted small">' + CA.verbs.list.length + ' verbs en 6 temps</div></div><span class="btn sm">Obre</span></a>' +
         '<div class="grid">' + CA.grammar.map(function (g, k) {
           var s = S.gram[g.id];
@@ -490,10 +648,11 @@
   // ========== VERBS ==========
   ROUTES.verbs = function (id) {
     var V = CA.verbs, P = V.persons, T = V.tenses;
-    var mode = id === 'entrena' ? 'entrena' : 'taules';
-    app.innerHTML = '<div class="stack">' + head('Verbs', 'Taules de conjugació per escoltar i un entrenament per escriure les formes.', ['gramatica', 'Gramàtica']) +
+    var mode = id.indexOf('entrena') === 0 ? 'entrena' : 'taules';
+    var preset = mode === 'entrena' && id.length > 8 ? id.slice(8).split('-').filter(function (t) { return TENSE_NAME[t]; }) : null;
+    app.innerHTML = '<div class="stack">' + head('Verbs', 'Taules de conjugació per escoltar i un entrenament per escriure les formes.', ['biblioteca', 'Biblioteca']) +
       '<div class="tabs"><button data-m="taules">Taules</button><button data-m="entrena">Entrena\'t</button></div><div id="pane"></div></div>';
-    $$('.tabs button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-m') === mode); b.onclick = function () { location.hash = b.getAttribute('data-m') === 'entrena' ? 'verbs-entrena' : 'verbs'; }; });
+    $$('.tabs button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-m') === mode); b.onclick = function () { location.hash = b.getAttribute('data-m') === 'entrena' ? (preset ? 'verbs-' + id : 'verbs-entrena') : 'verbs'; }; });
     var pane = $('#pane');
     var regs = V.list.filter(function (v) { return v.reg; });
     if (mode === 'taules') {
@@ -514,7 +673,7 @@
       vs.onchange = draw; draw();
       return;
     }
-    var chosenT = ['pres', 'perif', 'perf', 'fut'], group = 'tots';
+    var chosenT = preset && preset.length ? preset : ['pres', 'perif', 'perf', 'fut'], group = 'tots';
     pane.innerHTML = '<div class="panel stack"><div><div class="eyebrow" style="margin-bottom:8px">Temps</div><div class="toggle">' +
       T.map(function (t) { return '<label><input type="checkbox" value="' + t.id + '"' + (chosenT.indexOf(t.id) >= 0 ? ' checked' : '') + '> ' + t.name + '</label>'; }).join('') + '</div></div>' +
       '<div><div class="eyebrow" style="margin-bottom:8px">Verbs</div><div class="toggle">' +
@@ -532,29 +691,14 @@
       }
       runQuiz($('#drill'), items, {
         onAnswer: function (it, r) { S.verbs.total++; if (r === 'ok') { S.verbs.ok++; addXP(2); } save(); },
-        onFinish: function () { addXP(5, 'verbs'); }, again: go
+        onFinish: function (p) { addXP(5, 'verbs'); if (preset && p >= 70 && chosenT.join('+') === preset.join('+')) S.vdone[preset.join('+')] = true; save(); }, again: go
       });
       $('#drill').scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
   };
 
-  // ========== PRÀCTICA (destreses) ==========
-  ROUTES.practica = function () {
-    var c = function (list, store) { return list.filter(function (x) { var v = store[x.id]; return v && (v === true || v.done || v >= 60); }).length; };
-    var tiles = [
-      ['llegir', IC.read, 'Comprensió lectora', 'Correus, anuncis, avisos i menús amb preguntes.', c(CA.reading, S.read) + ' / ' + CA.reading.length],
-      ['escoltar', IC.ear, 'Comprensió oral', 'Diàlegs de la vida quotidiana amb veu catalana.', c(CA.listening, S.listen) + ' / ' + CA.listening.length],
-      ['dictat', IC.type, 'Dictat', 'Escolta i escriu. Correcció paraula per paraula.', S.dict + ' frases'],
-      ['escriure', IC.pen, 'Expressió escrita', 'Tasques tipus examen amb model i detector de castellanismes.', c(CA.writing, S.write) + ' / ' + CA.writing.length],
-      ['parlar', IC.mic, 'Expressió oral', 'Monòlegs amb cronòmetre i jocs de rol.', c(CA.speaking, S.speak) + ' / ' + CA.speaking.length],
-      ['pronuncia', IC.wave, 'Pronunciació', 'Els sons que més costen: vocal neutra, s sonora, l·l…', CA.pronunciation.length + ' grups']
-    ];
-    app.innerHTML = '<div class="stack">' + head('Pràctica', 'Les quatre destreses de l\'examen A2, més dictat i pronunciació.') +
-      '<div class="grid">' + tiles.map(function (t) { return '<a class="tile" href="#' + t[0] + '"><span class="plan"><span class="ic">' + t[1] + '</span></span><span class="t">' + t[2] + '</span><span class="s">' + t[3] + '</span><span class="foot"><span class="pill">' + t[4] + '</span></span></a>'; }).join('') + '</div></div>';
-  };
-
   function listPage(title, sub, list, store, sec) {
-    app.innerHTML = '<div class="stack">' + head(title, sub, ['practica', 'Pràctica']) + '<div class="grid">' + list.map(function (x) {
+    app.innerHTML = '<div class="stack">' + head(title, sub, ['biblioteca', 'Biblioteca']) + '<div class="grid">' + list.map(function (x) {
       var v = store[x.id], tag = typeof v === 'number' ? scorePill(v) : v && (v === true || v.done) ? '<span class="pill ok">Fet</span>' : '<span class="pill">Pendent</span>';
       return '<a class="tile" href="#' + sec + '-' + x.id + '">' + (x.kind ? '<span class="eyebrow">' + esc(x.kind) + '</span>' : '') + '<span class="t">' + esc(x.title) + '</span><span class="foot">' + tag + '</span></a>';
     }).join('') + '</div></div>';
@@ -583,7 +727,7 @@
     var L = CA.listening.filter(function (x) { return x.id === id; })[0];
     if (!L) return listPage('Comprensió oral', 'Escolta el diàleg (pots repetir-lo) i respon. La transcripció apareix quan corregeixes.', CA.listening, S.listen, 'escoltar');
     var plays = 0, rate = S.set.rate, playing = false;
-    app.innerHTML = '<div class="stack">' + head(esc(L.title), 'Escolta i respon. A l\'examen normalment se sent dues vegades.', ['escoltar', 'Comprensió oral']) +
+    app.innerHTML = '<div class="stack">' + head(esc(L.title), 'Escolta i respon. A l\'examen normalment se sent dues vegades.', ['escoltar', 'Comprensió oral']) + audioNote() +
       '<div class="player"><button type="button" class="play" aria-label="Reprodueix">' + IC.play + '</button><div class="meta"><b>' + esc(L.title) + '</b><span data-plays>Encara no l\'has escoltat</span><div class="wave">' + new Array(28).join('<i></i>') + '</div></div>' +
       '<button type="button" class="btn sm" data-slow>Lent</button></div>' +
       '<div class="panel"><h2>Preguntes</h2>' + qsHtml(L.qs, 'l') + '<div class="row" style="margin-top:12px"><button type="button" class="btn pri" data-grade>Corregeix</button><span id="res"></span><span class="spacer"></span><button type="button" class="btn ghost sm" data-tr>Mostra la transcripció</button></div></div>' +
@@ -624,7 +768,7 @@
   }
   ROUTES.dictat = function () {
     var list = sample(CA.dictation, 8), i = 0, total = 0;
-    app.innerHTML = '<div class="stack">' + head('Dictat', 'Escolta cada frase i escriu-la. Es corregeix paraula per paraula: verd correcte, groc accent, vermell error.', ['practica', 'Pràctica']) + '<div class="panel" id="pane"></div></div>';
+    app.innerHTML = '<div class="stack">' + head('Dictat', 'Escolta cada frase i escriu-la. Es corregeix paraula per paraula: verd correcte, groc accent, vermell error.', ['biblioteca', 'Biblioteca']) + audioNote() + '<div class="panel" id="pane"></div></div>';
     var pane = $('#pane');
     function render() {
       var s = list[i], answered = false;
@@ -634,7 +778,7 @@
         '<div class="row"><div class="accents">' + ACC.map(function (a) { return '<button type="button" tabindex="-1">' + a + '</button>'; }).join('') + '</div><span class="spacer"></span><button type="button" class="btn" data-check>Comprova</button></div>' +
         '<div id="dfb"></div><div class="row"><span class="spacer"></span><button type="button" class="btn pri" data-next hidden>' + (i + 1 < list.length ? 'Següent' : 'Resultat') + '</button></div></div>';
       var inp = $('#dict-in');
-      var play = function (slow) { TTS.stop(); TTS.speak(s, slow ? { rate: 0.68 } : {}); inp.focus(); };
+      var play = function (slow, auto) { if (auto) { TTS.stop(); TTS.speak(s); } else TTS.play(s, slow ? { rate: 0.68 } : {}); inp.focus(); };
       $('[data-play]').onclick = function () { play(false); };
       $('[data-play-slow]').onclick = function () { play(true); };
       $$('.accents button', pane).forEach(function (b) { b.onmousedown = function (e) { e.preventDefault(); }; b.onclick = function () { var p = inp.selectionStart || inp.value.length; inp.value = inp.value.slice(0, p) + b.textContent + inp.value.slice(inp.selectionEnd || p); inp.focus(); inp.setSelectionRange(p + b.textContent.length, p + b.textContent.length); }; });
@@ -649,9 +793,9 @@
       $('[data-check]').onclick = go;
       $('[data-next]').onclick = next;
       keyHandler = function (e) { if (e.key === 'Enter') { e.preventDefault(); if (!answered) go(); else next(); } };
-      setTimeout(function () { play(false); }, 250);
+      setTimeout(function () { play(false, true); }, 250);
     }
-    function next() { i++; if (i < list.length) render(); else { keyHandler = null; var p = Math.round(total / list.length * 100); pane.innerHTML = '<div class="result"><div class="big">' + p + ' %</div><p class="muted">Mitjana del dictat.</p><div class="row" style="justify-content:center"><button type="button" class="btn pri" data-again>Un altre dictat</button><a class="btn" href="#practica">Pràctica</a></div></div>'; $('[data-again]').onclick = ROUTES.dictat; } }
+    function next() { i++; if (i < list.length) render(); else { keyHandler = null; var p = Math.round(total / list.length * 100); S.dictDone = true; save(); pane.innerHTML = '<div class="result"><div class="big">' + p + ' %</div><p class="muted">Mitjana del dictat.</p><div class="row" style="justify-content:center"><button type="button" class="btn pri" data-again>Un altre dictat</button><a class="btn" href="#practica">Pràctica</a></div></div>'; $('[data-again]').onclick = function () { route(); }; } }
     render();
   };
 
@@ -726,7 +870,7 @@
     if (id.indexOf('rol-') === 0) return roleplay(id.slice(4));
     var T = CA.speaking.filter(function (x) { return x.id === id; })[0];
     if (!T) {
-      app.innerHTML = '<div class="stack">' + head('Expressió oral', 'Parla en veu alta amb el cronòmetre. Fes servir les preguntes de guia i escolta el model després.', ['practica', 'Pràctica']) +
+      app.innerHTML = '<div class="stack">' + head('Expressió oral', 'Parla en veu alta amb el cronòmetre. Fes servir les preguntes de guia i escolta el model després.', ['biblioteca', 'Biblioteca']) +
         '<h2>Monòlegs</h2><div class="grid">' + CA.speaking.map(function (x) { return '<a class="tile" href="#parlar-' + x.id + '"><span class="t">' + esc(x.title) + '</span><span class="s">' + Math.round(x.secs / 60 * 10) / 10 + ' min</span><span class="foot">' + (S.speak[x.id] ? '<span class="pill ok">Fet</span>' : '<span class="pill">Pendent</span>') + '</span></a>'; }).join('') + '</div>' +
         '<h2>Jocs de rol</h2><div class="grid">' + CA.roleplay.map(function (x) { return '<a class="tile" href="#parlar-rol-' + x.id + '"><span class="t">' + esc(x.title) + '</span><span class="s">La veu fa de dependent o cambrer; tu respons.</span></a>'; }).join('') +
         '<a class="tile" href="#pronuncia"><span class="t">Pronunciació</span><span class="s">Practica els sons propis del català.</span></a></div></div>';
@@ -763,15 +907,15 @@
     var R = CA.roleplay.filter(function (x) { return x.id === id; })[0];
     if (!R) { location.hash = 'parlar'; return; }
     var i = 0;
-    app.innerHTML = '<div class="stack">' + head(esc(R.title), 'Escolta la frase i respon en veu alta. Després mira una resposta possible.', ['parlar', 'Expressió oral']) + '<div class="panel" id="pane"></div></div>';
+    app.innerHTML = '<div class="stack">' + head(esc(R.title), 'Escolta la frase i respon en veu alta. Després mira una resposta possible.', ['parlar', 'Expressió oral']) + audioNote() + '<div class="panel" id="pane"></div></div>';
     var pane = $('#pane');
     function render() {
-      if (i >= R.lines.length) { pane.innerHTML = '<div class="result"><h2>Conversa acabada!</h2><div class="row" style="justify-content:center"><button type="button" class="btn pri" data-again>Torna-hi</button><a class="btn" href="#parlar">Expressió oral</a></div></div>'; $('[data-again]').onclick = function () { i = 0; render(); }; addXP(8, 'speak'); return; }
+      if (i >= R.lines.length) { pane.innerHTML = '<div class="result"><h2>Conversa acabada!</h2><div class="row" style="justify-content:center"><button type="button" class="btn pri" data-again>Torna-hi</button><a class="btn" href="#parlar">Expressió oral</a></div></div>'; $('[data-again]').onclick = function () { i = 0; render(); }; if (!S.speak['rol-' + R.id]) { S.speak['rol-' + R.id] = true; addXP(8, 'speak'); } return; }
       var l = R.lines[i];
       pane.innerHTML = '<div class="quiz"><div class="qhead"><span class="num">' + (i + 1) + ' / ' + R.lines.length + '</span>' + bar(i / R.lines.length * 100) + '</div>' +
         '<div class="lines"><div class="line"><span class="who">A</span><span class="prompt" style="font-size:1.2rem">' + esc(l[1]) + '</span>' + sayBtn(l[1]) + '</div></div>' +
         '<p class="hint">Respon en veu alta…</p><div id="sug"></div><div class="row"><button type="button" class="btn" data-sug>Mostra una resposta possible</button><span class="spacer"></span><button type="button" class="btn pri" data-next>Següent</button></div></div>';
-      TTS.speak(l[1]);
+      TTS.stop(); TTS.speak(l[1]);
       $('[data-sug]').onclick = function () { $('#sug').innerHTML = '<div class="line"><span class="who">Tu</span><span class="ca">' + esc(l[2]) + '</span>' + sayBtn(l[2]) + '</div>'; };
       $('[data-next]').onclick = function () { TTS.stop(); i++; render(); };
     }
@@ -779,13 +923,14 @@
   }
 
   ROUTES.pronuncia = function () {
-    app.innerHTML = '<div class="stack">' + head('Pronunciació', 'Escolta cada paraula i repeteix-la.' + (SR ? ' Amb el micròfon pots comprovar si el reconeixement de veu t\'entén.' : ''), ['parlar', 'Expressió oral']) +
+    app.innerHTML = '<div class="stack">' + head('Pronunciació', 'Escolta cada paraula i repeteix-la.' + (SR ? ' Amb el micròfon pots comprovar si el reconeixement de veu t\'entén.' : ''), ['parlar', 'Expressió oral']) + audioNote() +
       CA.pronunciation.map(function (g, k) {
         return '<div class="panel"><h2>' + esc(g.title) + '</h2><p class="muted" style="margin:6px 0 12px">' + esc(g.tip) + '</p><div class="list">' + g.words.map(function (w) {
           return '<div class="li"><div class="grow ca" style="font-size:1.15rem">' + esc(w) + '</div><span class="pr-res" data-w="' + esc(w) + '"></span>' + sayBtn(w) + '<button type="button" class="say" data-slow data-say="' + esc(w) + '" title="Lent" aria-label="Escolta a poc a poc" style="font-size:.7rem;font-weight:700">½</button>' +
             (SR ? '<button type="button" class="say" data-try="' + esc(w) + '" aria-label="Prova-ho amb el micròfon" title="Prova-ho">' + IC.mic + '</button>' : '') + '</div>';
         }).join('') + '</div></div>';
-      }).join('') + '</div>';
+      }).join('') + '<div class="row"><button type="button" class="btn pri" data-pdone>' + (S.pronDone ? 'Fet ✓' : 'Marca com a fet') + '</button></div></div>';
+    $('[data-pdone]').onclick = function () { if (!S.pronDone) { S.pronDone = true; addXP(8, 'speak'); } this.textContent = 'Fet ✓'; };
     $$('[data-try]').forEach(function (b) {
       b.onclick = function () {
         var w = b.getAttribute('data-try'), res = $('.pr-res[data-w="' + w.replace(/"/g, '\\"') + '"]', b.parentNode);
@@ -863,16 +1008,24 @@
     window.scrollTo(0, 0);
   }
 
+  function audioStatus() {
+    var s = TTS.status(), v = TTS.voice();
+    var txt = { none: ['bad', 'Este navegador no puede leer en voz alta. Si estás dentro de otra app, abre el enlace en Chrome o Safari.'],
+      ca: ['ok', 'Voz catalana disponible' + (v ? ': ' + v.name : '') + '.'],
+      other: ['near', 'No hay voz catalana. Se usará ' + (v ? '«' + v.name + '»' : 'otra voz') + ', con pronunciación aproximada. Instala la catalana (abajo).'],
+      unknown: ['near', 'El navegador no informa de sus voces. Pulsa «Prova el so»: si no oyes nada, sube el volumen, quita el modo silencio o instala la voz catalana.'] }[s];
+    return '<div class="fb ' + txt[0] + '" style="font-weight:400">' + txt[1] + '</div>';
+  }
+
   // ========== AJUSTOS ==========
   ROUTES.ajustos = function () {
     var vs = TTS.voices;
     app.innerHTML = '<div class="stack">' + head('Ajustos', 'Veu, aparença i còpia de seguretat del progrés.') +
-      '<div class="panel stack"><h2>Veu catalana</h2>' +
-      (!TTS.ok ? '<p class="muted">Aquest navegador no pot llegir text en veu alta.</p>' : vs.length ?
-        '<label class="small muted" for="set-voice">Veu</label><select id="set-voice">' + vs.map(function (v) { return '<option' + (v.name === S.set.voice ? ' selected' : '') + '>' + esc(v.name) + '</option>'; }).join('') + '</select>' :
-        '<div class="note warn">No hi ha cap veu catalana instal·lada. Instal·la-la i torna a obrir la pàgina:<ul style="margin:8px 0 0;padding-left:1.2em"><li><b>iPhone / iPad:</b> Configuració → Accessibilitat → Contingut llegit → Veus → Català.</li><li><b>Android:</b> Configuració → Text a veu (motor de Google) → Instal·lar dades de veu → Català.</li><li><b>Windows:</b> Configuració → Hora i idioma → Veu → Afegeix veus → Català.</li><li><b>Mac:</b> Configuració del Sistema → Accessibilitat → Contingut llegit → Veu del sistema → Gestiona les veus → Català.</li></ul></div>') +
+      '<div class="panel stack"><h2>Àudio</h2>' + audioStatus() +
+      (TTS.ok && TTS.all.length ? '<label class="small muted" for="set-voice">Veu</label><select id="set-voice">' + (vs.length ? vs : TTS.all).map(function (v) { var cur = TTS.voice(); return '<option' + (cur && v.name === cur.name ? ' selected' : '') + '>' + esc(v.name) + '</option>'; }).join('') + '</select>' : '') +
+      '<details' + (TTS.status() === 'ca' ? '' : ' open') + '><summary><b>Cómo instalar la voz catalana</b></summary><ul style="margin:8px 0 0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px"><li><b>iPhone / iPad:</b> Ajustes → Accesibilidad → Contenido leído → Voces → Catalán → descarga «Montserrat» o «Jordi».</li><li><b>Android:</b> Ajustes → Administración general (o Sistema) → Idioma → Texto a voz → motor de Google → Instalar datos de voz → Catalán. Usa Chrome.</li><li><b>Windows:</b> Configuración → Hora e idioma → Voz → Agregar voces → Catalán. Usa Edge o Chrome.</li><li><b>Mac:</b> Ajustes del Sistema → Accesibilidad → Contenido leído → Voz del sistema → Gestionar voces → Catalán.</li><li>Después, <b>cierra y vuelve a abrir el navegador</b>.</li></ul></details>' +
       '<label class="small muted" for="set-rate">Velocitat: <span id="rate-v" class="num">' + S.set.rate.toFixed(2) + '</span></label><input type="range" id="set-rate" min="0.6" max="1.2" step="0.05" value="' + S.set.rate + '">' +
-      '<div class="row"><button type="button" class="btn sm" data-say="Bon dia! Em dic Montserrat i t\'ajudaré a aprendre català.">' + IC.spk + 'Prova la veu</button></div>' +
+      '<div class="row"><button type="button" class="btn pri sm" data-say="Bon dia! Això és una prova de so. Si em sents, tot funciona.">' + IC.spk + 'Prova el so</button></div>' +
       '<div class="checks"><label><input type="checkbox" id="set-auto"' + (S.set.autoSay ? ' checked' : '') + '><span>Llegeix en veu alta la resposta correcta després de cada exercici</span></label></div></div>' +
       '<div class="panel stack"><h2>Estudi</h2><label class="small muted" for="set-goal">Objectiu diari (XP)</label><select id="set-goal">' + [20, 40, 60, 100].map(function (n) { return '<option' + (n === S.set.goal ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select>' +
       '<label class="small muted" for="set-new">Paraules noves per dia</label><select id="set-new">' + [5, 10, 15, 20, 30].map(function (n) { return '<option' + (n === S.set.newPerDay ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select>' +
@@ -881,7 +1034,7 @@
       '<textarea id="set-export" readonly style="min-height:90px;font-size:.8rem">' + esc(JSON.stringify(S)) + '</textarea><div class="row"><button type="button" class="btn sm" data-copy>Copia</button></div>' +
       '<label class="small muted" for="set-import">Enganxa aquí una còpia per recuperar-la</label><textarea id="set-import" style="min-height:90px;font-size:.8rem"></textarea><div class="row"><button type="button" class="btn sm" data-import>Recupera el progrés</button></div>' +
       '<div class="row" style="margin-top:8px"><button type="button" class="btn sm ghost" data-reset style="color:var(--bad)">Esborra tot el progrés</button></div></div></div>';
-    var v = $('#set-voice'); if (v) v.onchange = function () { S.set.voice = v.value; save(); };
+    var v = $('#set-voice'); if (v) v.onchange = function () { S.set.voice = v.value; save(); TTS.play('Bon dia! Així sona aquesta veu.'); };
     $('#set-rate').oninput = function () { S.set.rate = +this.value; $('#rate-v').textContent = S.set.rate.toFixed(2); save(); };
     $('#set-auto').onchange = function () { S.set.autoSay = this.checked; save(); };
     $('#set-goal').onchange = function () { S.set.goal = +this.value; save(); topStats(); };
@@ -905,6 +1058,6 @@
   };
 
   // Exposat per als tests
-  CA._test = { norm: norm, noAcc: noAcc, check: check, variants: variants, diffWords: diffWords, lint: lint, gramItem: gramItem, fillGaps: fillGaps };
+  CA._test = { norm: norm, noAcc: noAcc, check: check, variants: variants, diffWords: diffWords, lint: lint, gramItem: gramItem, fillGaps: fillGaps, stepInfo: stepInfo, unitSteps: unitSteps, chunks: function (t) { return TTS.chunks(t); } };
   route();
 })();

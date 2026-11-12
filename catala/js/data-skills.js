@@ -21,7 +21,7 @@ Júlia`,
       { q: 'Com és el pis de la Júlia?', o: ['Gran i antic', 'Petit i bonic', 'Petit i fosc'], a: 'Petit i bonic' },
       { q: 'Com va a la feina?', o: ['Amb autobús', 'Amb bicicleta', 'A peu'], a: 'A peu' },
       { q: 'Què va fer dissabte passat?', o: ['Va anar a Tossa de Mar', 'Va treballar a l\'escola', 'Va pintar el balcó'], a: 'Va anar a Tossa de Mar' },
-      { q: 'La Júlia convida el Marc a dormir a casa seva.', o: VF, a: 'Vertader' }
+      { q: 'La Júlia convida en Marc a dormir a casa seva.', o: VF, a: 'Vertader' }
     ] },
   { id: 'anunci', title: 'Es lloga pis', kind: 'Anunci', text:
 `ES LLOGA PIS AL BARRI DE GRÀCIA
@@ -107,10 +107,10 @@ Laia (10.42): Demà sopem a casa de l'Arnau. Porta postres!
 Pere (10.43): Perfecte! Hi seré a les nou. Compraré un pastís de xocolata.`,
     qs: [
       { q: 'A quina hora comença la pel·lícula?', o: ['A les 7.30', 'A les 8.30', 'A les 7.15'], a: 'A les 7.30' },
-      { q: 'Per què el Pere no va al cinema?', o: ['Està malalt', 'Ha de treballar', 'No li agrada el cinema'], a: 'Ha de treballar' },
+      { q: 'Per què en Pere no va al cinema?', o: ['Està malalt', 'Ha de treballar', 'No li agrada el cinema'], a: 'Ha de treballar' },
       { q: 'On sopen demà?', o: ['A casa de l\'Arnau', 'En un restaurant', 'A casa de la Laia'], a: 'A casa de l\'Arnau' },
-      { q: 'Què portarà el Pere?', o: ['Vi', 'Un pastís', 'Pa'], a: 'Un pastís' },
-      { q: 'El Pere arribarà a les nou.', o: VF, a: 'Vertader' }
+      { q: 'Què portarà en Pere?', o: ['Vi', 'Un pastís', 'Pa'], a: 'Un pastís' },
+      { q: 'En Pere arribarà a les nou.', o: VF, a: 'Vertader' }
     ] }
 ];
 

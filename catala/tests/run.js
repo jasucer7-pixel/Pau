@@ -11,10 +11,10 @@ const doc = { querySelector: () => el(), querySelectorAll: () => [], addEventLis
 const mem = {};
 const ctx = { console, Math, Date, JSON, Promise, setTimeout, clearTimeout, setInterval, clearInterval, document: doc,
   localStorage: { getItem: (k) => mem[k] || null, setItem: (k, v) => { mem[k] = v; } }, sessionStorage: { getItem: () => null, setItem() {} },
-  location: { hash: '' }, addEventListener() {}, scrollTo() {} };
+  location: { hash: '' }, addEventListener() {}, scrollTo() {}, navigator: { userAgent: 'node', platform: 'node', maxTouchPoints: 0 } };
 ctx.window = ctx;
 vm.createContext(ctx);
-for (const f of ['js/data-vocab.js', 'js/data-grammar.js', 'js/data-verbs.js', 'js/data-skills.js', 'js/app.js'])
+for (const f of ['js/data-vocab.js', 'js/data-grammar.js', 'js/data-verbs.js', 'js/data-skills.js', 'js/data-course.js', 'js/app.js'])
   vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), ctx, { filename: f });
 const CA = ctx.CA, T = CA._test;
 
@@ -110,6 +110,26 @@ for (const r of CA.reading.concat(CA.listening)) for (const q of r.qs) ok(q.o.in
 for (const w of CA.writing) { ok(w.model && w.check.length && w.min < w.max, 'tasca incompleta ' + w.id); ok(T.lint(w.model).length === 0, 'el model té avisos: ' + w.id + ' → ' + T.lint(w.model).join(' | ')); }
 for (const s of CA.speaking) ok(T.lint(s.model).length === 0, 'el model oral té avisos: ' + s.id + ' → ' + T.lint(s.model).join(' | '));
 for (const s of CA.dictation) ok(T.lint(s).length === 0, 'el dictat té avisos: ' + s);
+
+// Curs: cada pas apunta a contingut que existeix i cap contingut queda fora del curs
+const used = new Set();
+for (const u of CA.course) {
+  const st = T.unitSteps(u);
+  ok(st.length >= 4, 'unitat curta ' + u.id);
+  for (const x of st) ok(x && x.hash && x.title && !/undefined/.test(x.title + x.meta), 'pas mal definit a ' + u.id);
+  u.steps.forEach((x) => used.add(x));
+}
+for (const t of CA.vocab) ok(used.has('v:' + t.id), 'tema fora del curs: ' + t.id);
+for (const g of CA.grammar) ok(used.has('g:' + g.id), 'gramàtica fora del curs: ' + g.id);
+for (const r of CA.reading) ok(used.has('r:' + r.id), 'lectura fora del curs: ' + r.id);
+for (const l of CA.listening) ok(used.has('l:' + l.id), 'audició fora del curs: ' + l.id);
+for (const w of CA.writing) ok(used.has('w:' + w.id), 'redacció fora del curs: ' + w.id);
+for (const x of CA.speaking) ok(used.has('s:' + x.id), 'oral fora del curs: ' + x.id);
+const hashes = CA.course.flatMap((u) => T.unitSteps(u).map((x) => x.hash));
+ok(new Set(hashes).size === hashes.length, 'un pas apareix en dues unitats');
+// Veu: els textos llargs es parteixen en trossos curts
+const ch = T.chunks(CA.reading[2].text);
+ok(ch.length > 2 && ch.every((c) => c.length <= 200), 'trossos de veu massa llargs');
 
 console.log(`${checks} comprovacions, ${errors} errors`);
 process.exit(errors ? 1 : 0);

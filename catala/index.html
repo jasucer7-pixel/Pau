@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Schibsted+Grotesk:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/app.css?v=1">
+  <link rel="stylesheet" href="css/app.css?v=2">
   <script>
     try { var t = JSON.parse(localStorage.getItem('endavant-a2-v1') || '{}'); t = t.set && t.set.theme; if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
   </script>
@@ -25,9 +25,9 @@
       </a>
       <nav class="nav" aria-label="Seccions">
         <a href="#inici" data-nav="inici">Inici</a>
-        <a href="#paraules" data-nav="paraules">Paraules</a>
-        <a href="#gramatica" data-nav="gramatica">Gramàtica</a>
-        <a href="#practica" data-nav="practica">Pràctica</a>
+        <a href="#curs" data-nav="curs">Curs</a>
+        <a href="#repas" data-nav="repas">Repàs</a>
+        <a href="#biblioteca" data-nav="biblioteca">Biblioteca</a>
         <a href="#examen" data-nav="examen">Examen</a>
       </nav>
       <div class="top-stats" id="top-stats" aria-live="polite"></div>
@@ -43,18 +43,19 @@
 
   <nav class="tabbar" aria-label="Seccions">
     <a href="#inici" data-nav="inici"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span>Inici</span></a>
-    <a href="#paraules" data-nav="paraules"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="13" height="15" rx="2"/><path d="M8 3h11a2 2 0 0 1 2 2v13"/></svg><span>Paraules</span></a>
-    <a href="#gramatica" data-nav="gramatica"><svg viewBox="0 0 24 24"><path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2 2 2 0 0 0 2 2h13"/><path d="M9 8h6M9 12h4"/></svg><span>Gramàtica</span></a>
-    <a href="#practica" data-nav="practica"><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>Pràctica</span></a>
+    <a href="#curs" data-nav="curs"><svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h8.5a3.5 3.5 0 0 0 0-7h-9a3.5 3.5 0 0 1 0-7H16"/></svg><span>Curs</span></a>
+    <a href="#repas" data-nav="repas"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="13" height="15" rx="2"/><path d="M8 3h11a2 2 0 0 1 2 2v13"/></svg><span>Repàs</span></a>
+    <a href="#biblioteca" data-nav="biblioteca"><svg viewBox="0 0 24 24"><path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2 2 2 0 0 0 2 2h13"/><path d="M9 8h6M9 12h4"/></svg><span>Biblioteca</span></a>
     <a href="#examen" data-nav="examen"><svg viewBox="0 0 24 24"><path d="M9 4h6l1 2h3v15H5V6h3z"/><path d="M9 13l2 2 4-4"/></svg><span>Examen</span></a>
   </nav>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="js/data-vocab.js?v=1"></script>
-  <script src="js/data-grammar.js?v=1"></script>
-  <script src="js/data-verbs.js?v=1"></script>
-  <script src="js/data-skills.js?v=1"></script>
-  <script src="js/app.js?v=1"></script>
+  <script src="js/data-vocab.js?v=2"></script>
+  <script src="js/data-grammar.js?v=2"></script>
+  <script src="js/data-verbs.js?v=2"></script>
+  <script src="js/data-skills.js?v=2"></script>
+  <script src="js/data-course.js?v=2"></script>
+  <script src="js/app.js?v=2"></script>
 </body>
 </html>
