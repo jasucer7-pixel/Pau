@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Endavant Català A2</title>
+  <meta name="claude:viewport-fit-sides" content="cover">
+  <meta name="description" content="Endavant: aprende y prepara el certificado A2 de catalán desde el castellano. Vocabulario con repaso espaciado, gramática, verbos, comprensión lectora y oral, dictados, redacción, expresión oral y simulacros de examen.">
+  <meta name="theme-color" content="#1f4fbf">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2312223a'/%3E%3Cpath d='M18 14v36M46 14v36' stroke='white' stroke-width='7' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='33' r='5.5' fill='%23f6c12f'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Schibsted+Grotesk:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css?v=1">
+  <script>
+    try { var t = JSON.parse(localStorage.getItem('endavant-a2-v1') || '{}'); t = t.set && t.set.theme; if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+  </script>
+</head>
+<body>
+  <header class="top">
+    <div class="top-in">
+      <a class="brand" href="#inici" aria-label="Endavant, inici">
+        <span class="mark" aria-hidden="true"><i></i><b></b><i></i></span>
+        <span class="brand-name">Endavant <small>català A2</small></span>
+      </a>
+      <nav class="nav" aria-label="Seccions">
+        <a href="#inici" data-nav="inici">Inici</a>
+        <a href="#paraules" data-nav="paraules">Paraules</a>
+        <a href="#gramatica" data-nav="gramatica">Gramàtica</a>
+        <a href="#practica" data-nav="practica">Pràctica</a>
+        <a href="#examen" data-nav="examen">Examen</a>
+      </nav>
+      <div class="top-stats" id="top-stats" aria-live="polite"></div>
+      <a class="icon-btn" href="#ajustos" data-nav="ajustos" aria-label="Ajustos" title="Ajustos">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <main id="app" class="wrap" tabindex="-1">
+    <noscript><p>Esta web necesita JavaScript.</p></noscript>
+  </main>
+
+  <nav class="tabbar" aria-label="Seccions">
+    <a href="#inici" data-nav="inici"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span>Inici</span></a>
+    <a href="#paraules" data-nav="paraules"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="13" height="15" rx="2"/><path d="M8 3h11a2 2 0 0 1 2 2v13"/></svg><span>Paraules</span></a>
+    <a href="#gramatica" data-nav="gramatica"><svg viewBox="0 0 24 24"><path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2 2 2 0 0 0 2 2h13"/><path d="M9 8h6M9 12h4"/></svg><span>Gramàtica</span></a>
+    <a href="#practica" data-nav="practica"><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>Pràctica</span></a>
+    <a href="#examen" data-nav="examen"><svg viewBox="0 0 24 24"><path d="M9 4h6l1 2h3v15H5V6h3z"/><path d="M9 13l2 2 4-4"/></svg><span>Examen</span></a>
+  </nav>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/data-vocab.js?v=1"></script>
+  <script src="js/data-grammar.js?v=1"></script>
+  <script src="js/data-verbs.js?v=1"></script>
+  <script src="js/data-skills.js?v=1"></script>
+  <script src="js/app.js?v=1"></script>
+</body>
+</html>

@@ -16,6 +16,8 @@ Web para preparar la **PAU de la Comunidad de Madrid** con todos los exámenes o
 | **Practicar** | Ejercicios generados al momento (42 generadores) con corrección automática y solución paso a paso, y preguntas tipo test. |
 | **Formulario** | Toda la teoría de la asignatura en una página imprimible. |
 
+> **Nuevo:** en [`catala/`](catala/) hay una web aparte, *Endavant*, para aprender catalán y preparar el certificado A2.
+
 No se guarda ningún progreso ni datos personales: solo la preferencia de tema claro/oscuro.
 
 ## De dónde salen los exámenes
